@@ -40,8 +40,8 @@
             <select id="<?php echo $_code ?>_cc_type" <?php echo (!$this->isCseEnabled() ? "name=\"payment[cc_type]\"" : ""); ?> title="<?php echo $this->__('Credit Card Type') ?>" class="required-entry">
                 <option value=""><?php echo $this->__('--Please Select--') ?></option>
                 <?php $_ccType = $this->getInfoData('cc_type') ?>
-                <?php foreach ($this->getCcAvailableTypes() as $_typeCode => $_typeName): ?>
-                    <option value="<?php echo $_typeCode ?>"<?php if($_typeCode==$_ccType): ?> selected="selected"<?php endif ?>><?php echo $_typeName ?></option>
+                <?php foreach ($this->getCcAvailableTypes() as $_typeCode => $_data): ?>
+                    <option value="<?php echo $_typeCode ?>"<?php if($_typeCode==$_ccType): ?> selected="selected"<?php endif ?>><?php echo $_data['name'] ?></option>
                 <?php endforeach ?>
             </select>
         </div>
@@ -120,9 +120,9 @@
 
             if (order.paymentMethod && order.paymentMethod == '<?php echo $_code ?>') {
                 try {
-                    var cseForm = adyen.encrypt.createEncryptedForm(cse_form, cse_key, cse_options);
+                    cse_form.cseForm = cse_form.cseForm || adyen.encrypt.createEncryptedForm(cse_form, cse_key, cse_options);
                     // encrypt data directly because submit button is not always on the page
-                    cseForm.createEncryptedField(cseForm.encrypt());
+                    cse_form.cseForm.createEncryptedField(cse_form.cseForm.encrypt());
                 } catch (e) {
                     var encryptionFailed = true;
                 }

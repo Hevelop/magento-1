@@ -31,7 +31,7 @@ class Adyen_Payment_Block_ApplePay extends Mage_Core_Block_Template
     /**
      * @return bool
      */
-    public function hasApplePayEnabled() 
+    public function hasApplePayEnabled()
     {
         if(!Mage::helper('adyen')->getConfigData("active", "adyen_apple_pay", null)) {
             return false;
@@ -43,7 +43,7 @@ class Adyen_Payment_Block_ApplePay extends Mage_Core_Block_Template
         {
             return false;
         }
-        
+
         return true;
     }
 
@@ -52,8 +52,8 @@ class Adyen_Payment_Block_ApplePay extends Mage_Core_Block_Template
      */
     public function getSubTotal()
     {
-        $subtotal = [];
-        
+        $subtotal = array();
+
         if ($this->getProduct() && $this->getProduct()->getTypeId() === Mage_Catalog_Model_Product_Type::TYPE_SIMPLE) {
             $product = $this->_getData('product');
             if (!$product) {
@@ -62,12 +62,33 @@ class Adyen_Payment_Block_ApplePay extends Mage_Core_Block_Template
                 $subtotal['amount'] = $product->getFinalPrice();
                 $subtotal['productId'] = $product->getId();
             }
-        } else {
-            if (Mage::getSingleton('checkout/session')->getQuote()->getItemsCount() > 0) {
-                $cart = Mage::getModel('checkout/cart')->getQuote();
-                $subtotal['label'] = $this->__('Grand Total');
-                $subtotal['amount']  = $cart->getGrandTotal();
-                $subtotal['productId'] = 0;
+        } else if (Mage::getSingleton('checkout/session')->getQuote()->getItemsCount() > 0) {
+            $subtotal['label'] = $this->__('Grand Total');
+            $subtotal['amount'] = $this->getSubtotalInclTax();
+            $subtotal['productId'] = 0;
+        }
+        return $subtotal;
+    }
+
+    /**
+     * Re-using subtotal calculation from Mage_Checkout_Block_Cart_Sidebar
+     *
+     * @return decimal subtotal amount including tax
+     */
+    public function getSubtotalInclTax()
+    {
+        $cart = Mage::getModel('checkout/cart');
+        $subtotal = 0;
+        $totals = $cart->getQuote()->getTotals();
+        $config = Mage::getSingleton('tax/config');
+        if (isset($totals['subtotal'])) {
+            if ($config->displayCartSubtotalBoth() || $config->displayCartSubtotalInclTax()) {
+                $subtotal = $totals['subtotal']->getValueInclTax();
+            } else {
+                $subtotal = $totals['subtotal']->getValue();
+                if (isset($totals['tax'])) {
+                    $subtotal+= $totals['tax']->getValue();
+                }
             }
         }
         return $subtotal;
@@ -82,7 +103,7 @@ class Adyen_Payment_Block_ApplePay extends Mage_Core_Block_Template
     {
         return Mage::registry('product');
     }
-    
+
     /**
      * @return array
      */
@@ -92,11 +113,19 @@ class Adyen_Payment_Block_ApplePay extends Mage_Core_Block_Template
 
         if(Mage::getSingleton('customer/session')->isLoggedIn()) {
             $customer = Mage::getSingleton('customer/session')->getCustomer();
-            $shippingAddressId = $customer->getDefaultShipping();
+
+            // check if address is already chosen in the checkout if os use this otherwise use the default shipping
+            $quote = Mage::getSingleton('checkout/session')->getQuote();
+            $shippingAddressId = $quote->getShippingAddress()->customer_address_id;
+
+            if(!$shippingAddressId > 0) {
+                $shippingAddressId = $customer->getDefaultShipping();
+            }
+
             if ($shippingAddressId) {
                 $shippingAddress = Mage::getModel('customer/address')->load($shippingAddressId);
                 $country = $shippingAddress->getCountryId();
-                
+
                 // if it is a product retrieve shippping methods and calculate shippingCosts on this product
                 if ($product) {
                     $shippingCosts = $this->calculateShippingCosts($product->getId(), $country, Mage::app()->getStore()->getId());
@@ -117,7 +146,7 @@ class Adyen_Payment_Block_ApplePay extends Mage_Core_Block_Template
                 $rates = $address->collectShippingRates()
                     ->getGroupedAllShippingRates();
 
-                $costs = [];
+                $costs = array();
                 foreach ($rates as $carrier) {
                     foreach ($carrier as $rate) {
 
@@ -138,7 +167,7 @@ class Adyen_Payment_Block_ApplePay extends Mage_Core_Block_Template
             }
         }
 
-        return [];
+        return array();
     }
 
     /**
@@ -177,7 +206,7 @@ class Adyen_Payment_Block_ApplePay extends Mage_Core_Block_Template
 
             $rate = Mage::getModel('sales/quote_address_rate')
                 ->importShippingRate($shippingRate);
-            
+
             $costs[$rate->getCode()] = array(
                 'title' => trim($rate->getCarrierTitle()),
                 'price' => $rate->getPrice()
@@ -191,25 +220,36 @@ class Adyen_Payment_Block_ApplePay extends Mage_Core_Block_Template
      */
     public function getCustomerData()
     {
-        $customCustomerData = ['isLoggedIn' => Mage::getSingleton('customer/session')->isLoggedIn()];
+        $customCustomerData = array('isLoggedIn' => Mage::getSingleton('customer/session')->isLoggedIn());
 
         if (Mage::getSingleton('customer/session')->isLoggedIn()) {
 
             $customer = Mage::getSingleton('customer/session')->getCustomer();
-            $lastName = trim($customer->getMiddlename() . " " . $customer->getLastName());
+            $lastName = trim($customer->getMiddlename() . " " . $customer->getLastname());
             $customCustomerData['givenName'] = $customer->getFirstname();
             $customCustomerData['familyName'] = $lastName;
             $customCustomerData['emailAddress'] = $customer->getEmail();
             $billingAddressId = $customer->getDefaultBilling();
-            
+
             // only add billingAddress if he has one and is not in the latest step of the checkout
             if ($billingAddressId && !$this->onReviewStep()) {
 
                 $billingAddress = Mage::getModel('customer/address')->load($billingAddressId);
-                $lastName = trim($billingAddress->getMiddlename() . " " . $billingAddress->getLastName());
+                $lastName = trim($billingAddress->getMiddlename() . " " . $billingAddress->getLastname());
                 $countryName = Mage::app()->getLocale()->getCountryTranslation($billingAddress->getCountryId());
 
-                $customCustomerData['billingContact'] = [
+                // get state name
+                $administrativeArea = "";
+                if($billingAddress->getRegionId() > 0) {
+                    $region = Mage::getModel('directory/region')->load($billingAddress->getRegionId());
+                    if($region) {
+                        $administrativeArea = $region->getCode(); //CA
+                    }
+                } else {
+                    $administrativeArea = $billingAddress->getRegion(); // open field
+                }
+
+                $customCustomerData['billingContact'] = array(
                     'emailAddress' => $customer->getEmail(),
                     'phoneNumber' => $billingAddress->getTelephone(),
                     'familyName' => $lastName,
@@ -217,10 +257,10 @@ class Adyen_Payment_Block_ApplePay extends Mage_Core_Block_Template
                     'addressLines' =>  $billingAddress->getStreet(),
                     'locality' => $billingAddress->getCity(),
                     'postalCode' => $billingAddress->getPostcode(),
-                    'administrativeArea' => $billingAddress->getRegionId(), // state
+                    'administrativeArea' => $administrativeArea, // state
                     'country' => $countryName,
                     'countryCode' => $billingAddress->getCountryId()
-                ];
+                );
             }
 
             $shippingAddressId = $customer->getDefaultShipping();
@@ -229,10 +269,21 @@ class Adyen_Payment_Block_ApplePay extends Mage_Core_Block_Template
             if ($shippingAddressId && !$this->onReviewStep()) {
                 $shippingAddress = Mage::getModel('customer/address')->load($shippingAddressId);
 
-                $lastName = trim($shippingAddress->getMiddlename() . " " . $shippingAddress->getLastName());
+                $lastName = trim($shippingAddress->getMiddlename() . " " . $shippingAddress->getLastname());
                 $countryName = Mage::app()->getLocale()->getCountryTranslation($shippingAddress->getCountryId());
 
-                $customCustomerData['shippingContact'] = [
+                // get state name
+                $administrativeArea = "";
+                if($shippingAddress->getRegionId() > 0) {
+                    $region = Mage::getModel('directory/region')->load($shippingAddress->getRegionId());
+                    if($region) {
+                        $administrativeArea = $region->getCode(); //CA
+                    }
+                } else {
+                    $administrativeArea = $shippingAddress->getRegion(); // open field
+                }
+
+                $customCustomerData['shippingContact'] = array(
                     'emailAddress' => $customer->getEmail(),
                     'phoneNumber' => $shippingAddress->getTelephone(),
                     'familyName' => $lastName,
@@ -240,10 +291,10 @@ class Adyen_Payment_Block_ApplePay extends Mage_Core_Block_Template
                     'addressLines' =>  $shippingAddress->getStreet(),
                     'locality' => $shippingAddress->getCity(),
                     'postalCode' => $shippingAddress->getPostcode(),
-                    'administrativeArea' => $shippingAddress->getRegionId(), // state
+                    'administrativeArea' => $administrativeArea, // state
                     'country' => $countryName,
                     'countryCode' => $shippingAddress->getCountryId()
-                ];
+                );
             }
         }
         return $customCustomerData;
@@ -256,7 +307,7 @@ class Adyen_Payment_Block_ApplePay extends Mage_Core_Block_Template
     {
         return Mage::helper('adyen')->getApplePayMerchantIdentifier();
     }
-    
+
     /**
      * Only possible if quest checkout is turned off
      *
@@ -300,5 +351,5 @@ class Adyen_Payment_Block_ApplePay extends Mage_Core_Block_Template
     {
         return Mage::helper('adyen')->getConfigData('shipping_type', 'adyen_apple_pay');
     }
-    
+
 }

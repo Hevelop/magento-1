@@ -35,7 +35,6 @@ class Adyen_Payment_Model_Adyen_Data_PaymentRequest extends Adyen_Payment_Model_
     public $dccQuote;
     public $deliveryAddress;
     public $billingAddress;
-    public $elv;
     public $fraudOffset;
     public $merchantAccount;
     public $mpiData;
@@ -59,7 +58,6 @@ class Adyen_Payment_Model_Adyen_Data_PaymentRequest extends Adyen_Payment_Model_
     	$this->browserInfo = new Adyen_Payment_Model_Adyen_Data_BrowserInfo();
         $this->card = new Adyen_Payment_Model_Adyen_Data_Card();
         $this->amount = new Adyen_Payment_Model_Adyen_Data_Amount();
-        $this->elv = new Adyen_Payment_Model_Adyen_Data_Elv();
         $this->additionalData = new Adyen_Payment_Model_Adyen_Data_AdditionalData();
         $this->shopperName = new Adyen_Payment_Model_Adyen_Data_ShopperName(); // for boleto
         $this->bankAccount = new Adyen_Payment_Model_Adyen_Data_BankAccount(); // for SEPA
@@ -78,17 +76,10 @@ class Adyen_Payment_Model_Adyen_Data_PaymentRequest extends Adyen_Payment_Model_
         $incrementId = $order->getIncrementId();
         $orderCurrencyCode = $order->getOrderCurrencyCode();
         // override amount because this amount uses the right currency
-        $amount = $order->getGrandTotal();
-
-        $customerId = $order->getCustomerId();
-        if ($customerId) {
-            $customer = Mage::getModel('customer/customer')->load($order->getCustomerId());
-            $customerId = $customer->getData('adyen_customer_ref')
-                ?: $customer->getData('increment_id')
-                ?: $customerId;
-        }
 
         $realOrderId = $order->getRealOrderId();
+		
+		$customerId = Mage::helper('adyen/payment')->getShopperReference($order->getCustomerId(), $realOrderId);
 
         $this->reference = $incrementId;
         $this->merchantAccount = $merchantAccount;
@@ -144,23 +135,11 @@ class Adyen_Payment_Model_Adyen_Data_PaymentRequest extends Adyen_Payment_Model_
         }
 
         switch ($paymentMethod) {
-            case "elv":
-                $elv = unserialize($payment->getPoNumber());
-                $this->card = null;
-                $this->shopperName = null;
-                $this->bankAccount = null;
-                $this->elv->accountHolderName = $elv['account_owner'];
-                $this->elv->bankAccountNumber = $elv['account_number'];
-                $this->elv->bankLocation = $elv['bank_location'];
-                $this->elv->bankLocationId = $elv['bank_location'];
-                $this->elv->bankName = $elv['bank_name'];
-                break;
             case "apple_pay":
             case "cc":
             case "oneclick":
-
-                $this->shopperName = null;
-            	$this->elv = null;
+            case "multibanco":
+                
                 $this->bankAccount = null;
 
                 $billingAddress = $order->getBillingAddress();
@@ -168,9 +147,17 @@ class Adyen_Payment_Model_Adyen_Data_PaymentRequest extends Adyen_Payment_Model_
 
                 if($billingAddress)
                 {
+                    // add shopperName with firstName, middleName and lastName to support PapPal seller protection
+                    $this->shopperName->firstName = trim($billingAddress->getFirstname());
+                    $middleName = trim($billingAddress->getMiddlename());
+                    if($middleName != "") {
+                        $this->shopperName->infix = trim($middleName);
+                    }
+                    $this->shopperName->lastName = trim($billingAddress->getLastname());
+
                     $this->billingAddress = new Adyen_Payment_Model_Adyen_Data_BillingAddress();
-                    $this->billingAddress->street = $helper->getStreet($billingAddress)->getName();
-                    $this->billingAddress->houseNumberOrName = $helper->getStreet($billingAddress)->getHouseNumber();
+                    $this->billingAddress->street = $billingAddress->getStreet(1);
+                    $this->billingAddress->houseNumberOrName = '';
                     $this->billingAddress->city = $billingAddress->getCity();
                     $this->billingAddress->postalCode = $billingAddress->getPostcode();
                     $this->billingAddress->stateOrProvince = $billingAddress->getRegionCode();
@@ -181,8 +168,8 @@ class Adyen_Payment_Model_Adyen_Data_PaymentRequest extends Adyen_Payment_Model_
                 if($deliveryAddress)
                 {
                     $this->deliveryAddress = new Adyen_Payment_Model_Adyen_Data_DeliveryAddress();
-                    $this->deliveryAddress->street = $helper->getStreet($deliveryAddress)->getName();
-                    $this->deliveryAddress->houseNumberOrName = $helper->getStreet($deliveryAddress)->getHouseNumber();
+                    $this->deliveryAddress->street = $deliveryAddress->getStreet(1);
+                    $this->deliveryAddress->houseNumberOrName = '';
                     $this->deliveryAddress->city = $deliveryAddress->getCity();
                     $this->deliveryAddress->postalCode = $deliveryAddress->getPostcode();
                     $this->deliveryAddress->stateOrProvince = $deliveryAddress->getRegionCode();
@@ -236,11 +223,16 @@ class Adyen_Payment_Model_Adyen_Data_PaymentRequest extends Adyen_Payment_Model_
 
                     $this->card = null;
 
-                    // this is only needed for creditcards
-                    if($payment->getAdditionalInformation("encrypted_data") != "" && $payment->getAdditionalInformation("encrypted_data") != "false" ) {
+                    $session = Mage::helper('adyen')->getSession();
+                    $info = $payment->getMethodInstance();
+                    $encryptedData = $session->getData('encrypted_data_'.$info->getCode());
+                    // remove it from the session
+                    $session->setData('encrypted_data_'.$info->getCode(), null);
+
+                    if($encryptedData != "" && $encryptedData != "false" ) {
                         $kv = new Adyen_Payment_Model_Adyen_Data_AdditionalDataKVPair();
                         $kv->key = new SoapVar("card.encrypted.json", XSD_STRING, "string", "http://www.w3.org/2001/XMLSchema");
-                        $kv->value = new SoapVar($payment->getAdditionalInformation("encrypted_data"), XSD_STRING, "string", "http://www.w3.org/2001/XMLSchema");
+                        $kv->value = new SoapVar($encryptedData, XSD_STRING, "string", "http://www.w3.org/2001/XMLSchema");
                         $this->additionalData->entry = $kv;
                     } else {
                         if($paymentMethod == 'cc') {
@@ -288,6 +280,14 @@ class Adyen_Payment_Model_Adyen_Data_PaymentRequest extends Adyen_Payment_Model_
                     $this->installments->value = $payment->getAdditionalInformation('number_of_installments');
                 }
 
+            if ($paymentMethod == "multibanco") {
+                $this->card = $this->deliveryAddress = $this->recurring = $this->additionalData = null;
+
+                $this->selectedBrand = $paymentMethod;
+
+                $this->deliveryDate = $payment->getAdditionalInformation('delivery_date');
+            }
+
                 // add observer to have option to overrule and or add request data
                 Mage::dispatchEvent('adyen_payment_card_payment_request', array('order' => $order, 'paymentMethod' => $paymentMethod, 'paymentRequest' => $this));
 
@@ -295,7 +295,6 @@ class Adyen_Payment_Model_Adyen_Data_PaymentRequest extends Adyen_Payment_Model_
             case "boleto":
             	$boleto = unserialize($payment->getPoNumber());
             	$this->card = null;
-            	$this->elv = null;
                 $this->bankAccount = null;
             	$this->socialSecurityNumber = $boleto['social_security_number'];
             	$this->selectedBrand = $boleto['selected_brand'];
@@ -304,13 +303,11 @@ class Adyen_Payment_Model_Adyen_Data_PaymentRequest extends Adyen_Payment_Model_
             	$this->deliveryDate = $boleto['delivery_date'];
             	break;
             case "sepa":
-                $sepa = unserialize($payment->getPoNumber());
                 $this->card = null;
-                $this->elv = null;
                 $this->shopperName = null;
-                $this->bankAccount->iban = $sepa['iban'];
-                $this->bankAccount->ownerName = $sepa['account_name'];
-                $this->bankAccount->countryCode = $sepa['country'];
+                $this->bankAccount->iban = $payment->getAdditionalInformation('iban');
+                $this->bankAccount->ownerName = $payment->getAdditionalInformation('account_name');
+                $this->bankAccount->countryCode = $payment->getAdditionalInformation('country');
                 $this->selectedBrand = "sepadirectdebit";
                 break;
         }

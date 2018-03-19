@@ -40,15 +40,14 @@ class Adyen_Payments_Shell extends Mage_Shell_Abstract
    	public function run() {
    		$action = $this->getArg('action');
    		if (empty($action)) {
-   			echo $this->usageHelp();
+   			print_r($this->usageHelp());
    		} else {
    			$actionMethodName = $action.'Action';
    			if (method_exists($this, $actionMethodName)) {
    				$this->$actionMethodName();
    			} else {
-   				echo "Action $action not found!\n";
-   				echo $this->usageHelp();
-   				exit(1);
+				print_r("Action $action not found!\n");
+				print_r($this->usageHelp());
    			}
    		}
    	}
@@ -84,14 +83,24 @@ class Adyen_Payments_Shell extends Mage_Shell_Abstract
    	public function loadBillingAgreementsAction()
 	{
 		$api = Mage::getSingleton('adyen/api');
+		$storeId = $this->getArg('store');
+		$dateCreated = $this->getArg('createdAfter');
 
-		foreach (Mage::app()->getStores(true) as $store) {
+		$stores = Mage::getModel('core/store')->getCollection();
+		if ((int)$storeId) {
+            $stores->addFieldToFilter('store_id', ['in' => [0, $storeId]]);
+		}
+
+		foreach ($stores as $store) {
             /** @var Mage_Core_Model_Store $store */
-            echo sprintf("Load for store %s\n", $store->getCode());
+            print_r(sprintf("Load for store %s\n", $store->getCode()));
 
 			$customerCollection = Mage::getResourceModel('customer/customer_collection');
 			$customerCollection->addFieldToFilter('store_id', $store->getId());
-
+			if (isset($dateCreated)) {
+				$customerCollection->addFieldToFilter('created_at', ['gteq' => $dateCreated]);
+			}
+			
 			$select = $customerCollection->getSelect();
 			$select->reset(Varien_Db_Select::COLUMNS);
 			$select->columns(['e.entity_id','e.increment_id']);
@@ -104,12 +113,16 @@ class Adyen_Payments_Shell extends Mage_Shell_Abstract
 			$customerReferences = $customerCollection->getConnection()->fetchAssoc($select);
 			foreach ($customerReferences as $customerId => $customerData) {
 
-				$customerReference = $customerData['adyen_customer_ref']
-						?: $customerData['increment_id']
-						?: $customerId;
+				if ($customerData['adyen_customer_ref']) {
+				   $customerReference = $customerData['adyen_customer_ref'];
+				} elseif ($customerData['increment_id']) {
+				   $customerReference = $customerData['increment_id'];
+				} else {
+				   $customerReference = $customerId;
+				}
 
 				$recurringContracts = $api->listRecurringContracts($customerReference, $store);
-                echo sprintf("Found %s recurring contracts for customer %s (ref. %s)\n", count($recurringContracts), $customerId, $customerReference);
+                print_r(sprintf("Found %s recurring contracts for customer %s (ref. %s)\n", count($recurringContracts), $customerId, $customerReference));
 
 				$billingAgreementCollection = Mage::getResourceModel('adyen/billing_agreement_collection')
 					->addCustomerFilter($customerId)
@@ -136,7 +149,7 @@ class Adyen_Payments_Shell extends Mage_Shell_Abstract
 						$billingAgreement->parseRecurringContractData($recurringContract);
 						$billingAgreement->save();
 					} catch (Adyen_Payment_Exception $e) {
-						echo sprintf("Error while adding recurring contract data to billing agreement: %s\n", $e->getMessage());
+						print_r(sprintf("Error while adding recurring contract data to billing agreement: %s\n", $e->getMessage()));
 						var_dump($recurringContract);
 					} catch (Exception $e) {
 						throw $e;

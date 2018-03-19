@@ -58,9 +58,15 @@ class Adyen_Payment_Model_Adyen_Cc extends Adyen_Payment_Model_Adyen_Abstract
 
         if ($this->isCseEnabled()) {
             $info->setCcType($data->getCcType());
-            $info->setAdditionalInformation('encrypted_data', $data->getEncryptedData());
-        }
-        else {
+
+            if($data->getEncryptedData() == "false" || $data->getEncryptedData() == "") {
+                Mage::throwException(Mage::helper('adyen')->__('Invalid credit number card.'));
+            } else if($data->getEncryptedData()) {
+                $session = Mage::helper('adyen')->getSession();
+                $method = $this->getCode();
+                $session->setData('encrypted_data_'.$method, $data->getEncryptedData());
+            }
+        } else {
             $info->setCcType($data->getCcType())
                 ->setCcOwner($data->getCcOwner())
                 ->setCcLast4(substr($data->getCcNumber(), -4))
@@ -79,6 +85,11 @@ class Adyen_Payment_Model_Adyen_Cc extends Adyen_Payment_Model_Adyen_Abstract
         }
 
         return $this;
+    }
+
+    public function validate()
+    {
+        parent::validate();
     }
 
     public function getPossibleInstallments() {
@@ -150,6 +161,11 @@ class Adyen_Payment_Model_Adyen_Cc extends Adyen_Payment_Model_Adyen_Abstract
         }
     }
 
+    /**
+     * This method is called for redirect to 3D secure
+     *
+     * @return mixed
+     */
     public function getFormUrl() {
         $this->_initOrder();
         $order = $this->_order;
@@ -218,12 +234,12 @@ class Adyen_Payment_Model_Adyen_Cc extends Adyen_Payment_Model_Adyen_Abstract
      */
     public function isAvailable($quote = null)
     {
-        $isAvailable = parent::isAvailable();
+        $isAvailable = parent::isAvailable($quote);
 
         if (!is_null($quote)) {
-            $disableZeroTotal = Mage::getStoreConfig('payment/adyen_hpp/disable_zero_total', $quote->getStoreId());
+            $disableZeroTotal = Mage::getStoreConfig('payment/adyen_cc/disable_zero_total', $quote->getStoreId());
         } else {
-            $disableZeroTotal = Mage::getStoreConfig('payment/adyen_hpp/disable_zero_total');
+            $disableZeroTotal = Mage::getStoreConfig('payment/adyen_cc/disable_zero_total');
         }
         
         if (!is_null($quote) && $quote->getGrandTotal() <= 0 && $disableZeroTotal) {

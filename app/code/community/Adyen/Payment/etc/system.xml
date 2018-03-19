@@ -53,16 +53,13 @@
                             <frontend_model>adyen/adminhtml_system_config_fieldset_gettingstarted</frontend_model>
                             <comment><![CDATA[
                             <ul>
-                                <li><a target="_blank" href="http://vimeo.com/94005128">Instructional video on how to set up the Adyen Magento plugin</a></a>
-                                <li><a target="_blank" href="https://www.adyen.com/dam/documentation/manuals/MagentoQuickIntegrationManual.pdf">Download the Quick Quick Integration Guide</a></li>
-                                <li><a target="_blank" href="https://www.adyen.com/dam/documentation/manuals/AdyenMagentoExtension.pdf">Download the more advanced manual</a></li>
-                                <li><a target="_blank" href="https://www.adyen.com/home/payment-services/plug-ins/magento#form"><strong>Sign</strong> up for a test account</a></li>
+                                <li><a target="_blank" href="https://docs.adyen.com/developers/magento">Visit the Magento Integration Manual</a></li>
                                 <li>The latest version of the <a target="_blank" href="https://github.com/adyenpayments/magento/releases">Adyen Magento module is also available through GitHub</a>.</li>
                             </ul>
-                            <p>In the test modus you nee to use test cards. <a target="_blank" href="http://adyen.com/test-card-numbers">Test cards can be found here</a>
-                            <p>In the test envirenment you can test with refused cards for more information <a target="_blank" href="https://docs.adyen.com/display/TD/Error+code+testing">click here</a></p>
-                            <p>You can find this in the Adyen back-office. The Adyen back-office can be found on <a target="_blank" href="https://ca-test.adyen.com">https://ca-test.adyen.com</a> for test or <a target="_blank" href="https://ca-live.adyen.com">https://ca-live.adyen.com</a> for live.</p>
-                            <p>If you have any further questions, please visit the <a target="_blank" href="http://www.adyen.com">Adyen.com</a> website or email <a href="mailto:magento@adyen.com">magento@adyen.com</a>.</p>
+                            <p>In the test mode you need to use test cards. <a target="_blank" href="http://adyen.com/test-card-numbers">Test cards can be found here</a>
+                            <p>In the test mode you can test with refused cards. For more information <a target="_blank" href="https://docs.adyen.com/display/TD/Error+code+testing">click here</a></p>
+                            <p>The Adyen back-office can be found on <a target="_blank" href="https://ca-test.adyen.com">https://ca-test.adyen.com</a> for test or <a target="_blank" href="https://ca-live.adyen.com">https://ca-live.adyen.com</a> for live.</p>
+                            <p>Already visited the Magento Integration Manual but still have questions? Please contact us at <a href="mailto:magento@adyen.com">magento@adyen.com</a>.</p>
                             ]]>
                             </comment>
                             <fields>
@@ -242,7 +239,7 @@
                                 </payment_authorized>
                                 <payment_cancelled translate="label">
                                     <label>Order status: order cancellation</label>
-                                    <tooltip>Status given to orders after order cancellation is confirmed by a CANCEL_OR_REFUND notification from Adyen. If orders are already invoiced, they cannot be cancelled, but will be refunded instead.</tooltip>
+                                    <tooltip>Status given to orders after order cancellation is confirmed by a AUTHORIZATION with success false, CANCEL OR CANCEL_OR_REFUND notification from Adyen. If orders are already invoiced, they cannot be cancelled, but will be refunded instead.</tooltip>
                                     <frontend_type>select</frontend_type>
                                     <config_path>payment/adyen_abstract/payment_cancelled</config_path>
                                     <source_model>adyen/source_cancelModes</source_model>
@@ -383,6 +380,17 @@
                                     <show_in_website>0</show_in_website>
                                     <show_in_store>0</show_in_store>
                                 </uncancelorder>
+                                <unholdorder translate="label">
+                                    <label>Enable Unhold Order</label>
+                                    <tooltip>If an order is holded for some reason but it received a notification that the payment is processed this will automatically unhold the order</tooltip>
+                                    <frontend_type>select</frontend_type>
+                                    <config_path>payment/adyen_abstract/unholdorder</config_path>
+                                    <source_model>adminhtml/system_config_source_yesno</source_model>
+                                    <sort_order>95</sort_order>
+                                    <show_in_default>1</show_in_default>
+                                    <show_in_website>0</show_in_website>
+                                    <show_in_store>0</show_in_store>
+                                </unholdorder>
                                 <autorefundoncancel translate="label">
                                     <label>Automatic cancel\refund when a order is canceled</label>
                                     <tooltip>Enable/Disable automatic refund when canceling a order.</tooltip>
@@ -416,6 +424,31 @@
                                     <show_in_website>1</show_in_website>
                                     <show_in_store>0</show_in_store>
                                 </send_update_mail>
+
+                                <use_zero_auth translate="label">
+                                    <label>Do not perform a full authorisation, only a zero auth to check if the card is valid</label>
+                                    <frontend_type>select</frontend_type>
+                                    <source_model>adminhtml/system_config_source_yesno</source_model>
+                                    <config_path>payment/adyen_abstract/use_zero_auth</config_path>
+                                    <sort_order>1210</sort_order>
+                                    <show_in_default>1</show_in_default>
+                                    <show_in_website>1</show_in_website>
+                                    <show_in_store>0</show_in_store>
+                                </use_zero_auth>
+                                <base_zero_auth_on_date translate="label tooltip">
+                                    <label>Base zero authentication vs. full authentication on the date field</label>
+                                    <frontend_type>select</frontend_type>
+                                    <source_model>adyen/source_zeroauthdatefield</source_model>
+                                    <config_path>payment/adyen_abstract/base_zero_auth_on_date</config_path>
+                                    <tooltip>Full authentication is only valid for 7 days, after that it expires. The value here should be the date column name in 'sales_flat_order' on which the order will be shipped and thus captured.</tooltip>
+                                    <sort_order>1220</sort_order>
+                                    <show_in_default>1</show_in_default>
+                                    <show_in_website>1</show_in_website>
+                                    <show_in_store>0</show_in_store>
+                                    <depends>
+                                        <use_zero_auth>1</use_zero_auth>
+                                    </depends>
+                                </base_zero_auth_on_date>
                             </fields>
                         </adyen_order_process>
                         <adyen_order_notifications type="group" translate="label comment tooltip">
@@ -444,10 +477,22 @@
                                     <frontend_type>select</frontend_type>
                                     <source_model>adminhtml/system_config_source_yesno</source_model>
                                     <sort_order>250</sort_order>
+                                    <config_path>payment/adyen_abstract/multiple_merchants</config_path>
                                     <show_in_default>1</show_in_default>
                                     <show_in_website>0</show_in_website>
                                     <show_in_store>0</show_in_store>
                                 </multiple_merchants>
+                                <event_queue_limit>
+                                    <label>Process Notification Queue Limit</label>
+                                    <tooltip>What is the maximum amount of payment notifications to process during a cron run?</tooltip>
+                                    <frontend_type>text</frontend_type>
+                                    <validate>validate-not-negative-number</validate>
+                                    <sort_order>260</sort_order>
+                                    <config_path>payment/adyen_abstract/event_queue_limit</config_path>
+                                    <show_in_default>1</show_in_default>
+                                    <show_in_website>0</show_in_website>
+                                    <show_in_store>0</show_in_store>
+                                </event_queue_limit>
                             </fields>
                         </adyen_order_notifications>
                         <adyen_billing_agreements type="group" translate="label comment tooltip">
@@ -868,10 +913,10 @@
                     </fields>
                 </adyen_cc>
                 <adyen_oneclick>
-                    <label>OneClick - Requires Adyen Credit Card</label>
+                    <label>Stored Payment Methods - Requires Adyen Credit Card</label>
                     <frontend_type>text</frontend_type>
                     <comment><![CDATA[
-                                During checkout shoppers can choose to have their payment details remembered and stored for trusted websites in Adyen’s highly secure platform. Adyen takes care of this process for its customers. Shoppers can then select in the Magento checkout the saved card and checkout with ‘OneClick’.
+                                During checkout shoppers can choose to have their payment details remembered and stored for trusted websites in Adyen’s highly secure platform. Adyen takes care of this process for its customers. Shoppers can then select the stored payment method in the checkout.
                                 <br />
                                 <b>Make sure you have turned on RECURRING_CONTRACT notification on your merchantAccount. If you want to add this or if you are not sure, just send us an <a href="mailto:magento@adyen.com">email</a>.</b>
                             ]]></comment>
@@ -1219,6 +1264,16 @@
                             <show_in_store>1</show_in_store>
                             <depends><allowspecific>1</allowspecific></depends>
                         </specificcountry>
+                        <ratepay_id>
+                            <label>RatePAY Device Ident SId</label>
+                            <tooltip>Unique RatePAY Id provided by RatePAY integration consultant</tooltip>
+                            <frontend_type>text</frontend_type>
+                            <sort_order>51</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>0</show_in_store>
+                            <depends><openinvoicetypes>ratepay</openinvoicetypes></depends>
+                        </ratepay_id>
                     </fields>
                 </adyen_openinvoice>
                 <!-- @SEPA only -->
@@ -1548,14 +1603,14 @@
                             <label>IP filter</label>
                             <tooltip>Enable IP filter let's you define an IP range when this payment method is visible</tooltip>
                             <frontend_type>select</frontend_type>
-                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <source_model>adyen/source_POS_IpFilter</source_model>
                             <sort_order>57</sort_order>
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
                             <show_in_store>1</show_in_store>
                         </ip_filter>
-                        <ip_filter_from>
-                            <label>IP From</label>
+                        <ip_filter_ips>
+                            <label>IPs</label>
                             <frontend_type>text</frontend_type>
                             <source_model>adminhtml/system_config_source_yesno</source_model>
                             <sort_order>58</sort_order>
@@ -1563,21 +1618,31 @@
                             <show_in_website>1</show_in_website>
                             <show_in_store>1</show_in_store>
                             <depends><ip_filter>1</ip_filter></depends>
-                        </ip_filter_from>
-                        <ip_filter_to>
-                            <label>IP To</label>
+                        </ip_filter_ips>
+                        <ip_filter_from>
+                            <label>IP From</label>
                             <frontend_type>text</frontend_type>
                             <source_model>adminhtml/system_config_source_yesno</source_model>
                             <sort_order>59</sort_order>
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
                             <show_in_store>1</show_in_store>
-                            <depends><ip_filter>1</ip_filter></depends>
+                            <depends><ip_filter>2</ip_filter></depends>
+                        </ip_filter_from>
+                        <ip_filter_to>
+                            <label>IP To</label>
+                            <frontend_type>text</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <sort_order>60</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <depends><ip_filter>2</ip_filter></depends>
                         </ip_filter_to>
                         <allowspecific translate="label">
                             <label>Payment from applicable countries</label>
                             <frontend_type>allowspecific</frontend_type>
-                            <sort_order>60</sort_order>
+                            <sort_order>61</sort_order>
                             <source_model>adminhtml/system_config_source_payment_allspecificcountries</source_model>
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
@@ -1848,7 +1913,7 @@
                     <activity_path>payment/adyen_apple_pay/active</activity_path>
                     <comment><![CDATA[
                                You need to configure Apple Pay on the Adyen Platform. Please contact support@adyen.com and provide us CSR + merchant Identifier.<br />
-                               Apple Pay will only be visable if you are running on IOS10 and higher. You need to browse on a Safari browser and you need to have active creditcards in your wallet.
+                               Apple Pay will only be visible if you are running on IOS10 and higher. You need to browse on a Safari browser and you need to have active credit cards in your wallet.
                             ]]></comment>
                     <fields>
                         <active translate="label">
@@ -1879,7 +1944,7 @@
                         </sort_order>
                         <merchant_identifier_test>
                             <label>Test: Apple Merchant Identifier</label>
-                            <tooltip>You can retrieve this from you Apple Account</tooltip>
+                            <tooltip>You can retrieve this from you Apple Account.</tooltip>
                             <frontend_type>text</frontend_type>
                             <sort_order>30</sort_order>
                             <show_in_default>1</show_in_default>
@@ -1888,7 +1953,7 @@
                         </merchant_identifier_test>
                         <merchant_identifier_live>
                             <label>Live: Apple Merchant Identifier</label>
-                            <tooltip>You can retrieve this from you Apple Account</tooltip>
+                            <tooltip>You can retrieve this from you Apple Account.</tooltip>
                             <frontend_type>text</frontend_type>
                             <sort_order>35</sort_order>
                             <show_in_default>1</show_in_default>
@@ -1915,7 +1980,7 @@
                         </full_path_location_pem_file_live>
                         <shipping_type>
                             <label>Shipping Type</label>
-                            <tooltip>Title of the shipping method selection on the payments sheet you only these options this is limited by Apple</tooltip>
+                            <tooltip>Title of the shipping method selection on the payments sheet.</tooltip>
                             <frontend_type>select</frontend_type>
                             <source_model>adyen/source_applePayShippingType</source_model>
                             <sort_order>50</sort_order>
@@ -1925,7 +1990,7 @@
                         </shipping_type>
                         <allow_quest_checkout>
                             <label>Allow Guest Checkout</label>
-                            <tooltip>Show Apple Pay icon if user is not logged in. The user has the option to set his own contact detals and shipping\billing address</tooltip>
+                            <tooltip>Show Apple Pay icon if user is not logged in. The user has the option to set his own contact details and shipping\billing address.</tooltip>
                             <frontend_type>select</frontend_type>
                             <source_model>adminhtml/system_config_source_yesno</source_model>
                             <sort_order>60</sort_order>
@@ -1946,7 +2011,7 @@
                         </change_address>
                         <show_in_payment_step_checkout>
                             <label>Show payment method as well in the Payment Information step of the checkout</label>
-                            <tooltip>If you set this to NO this will not be shown as a payment method option in the checkout steps. It will be visable on the product and shopping basket page</tooltip>
+                            <tooltip>If you set this to NO this will not be shown as a payment method option in the checkout steps. It will be visible on the product and shopping basket page.</tooltip>
                             <frontend_type>select</frontend_type>
                             <source_model>adminhtml/system_config_source_yesno</source_model>
                             <sort_order>80</sort_order>
@@ -1969,16 +2034,15 @@
                         </show_outside_of_checkout>
                     </fields>
                 </adyen_apple_pay>
-                <!-- @Elv only -->
-                <adyen_elv translate="label" module="adyen">
-                    <label>ELV (Deprecated, better use Adyen SEPA)</label>
+                <adyen_multibanco translate="label" module="adyen">
+                    <label>Multibanco</label>
                     <frontend_type>text</frontend_type>
                     <sort_order>410</sort_order>
                     <show_in_default>1</show_in_default>
                     <show_in_website>1</show_in_website>
                     <show_in_store>1</show_in_store>
                     <frontend_model>adyen/adminhtml_system_config_fieldset_method</frontend_model>
-                    <activity_path>payment/adyen_elv/active</activity_path>
+                    <activity_path>payment/adyen_multibanco/active</activity_path>
                     <fields>
                         <active translate="label">
                             <label>Enabled</label>
@@ -1999,44 +2063,25 @@
                         </title>
                         <sort_order translate="label">
                             <label>Sort Order</label>
-            			    <tooltip>Set the sequence number of this payment method in the checkout. Payment methods with a higher sort order number will be displayed lower in the list.</tooltip>
+                            <tooltip>Set the sequence number of this payment method in the checkout. Payment methods with a higher sort order number will be displayed lower in the list.</tooltip>
                             <frontend_type>text</frontend_type>
-                            <sort_order>25</sort_order>
+                            <sort_order>30</sort_order>
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
                             <show_in_store>1</show_in_store>
                         </sort_order>
-                        <allowspecific translate="label">
-                            <label>Payment from applicable countries</label>
-                            <frontend_type>allowspecific</frontend_type>
-                            <sort_order>50</sort_order>
-                            <source_model>adminhtml/system_config_source_payment_allspecificcountries</source_model>
-                            <show_in_default>1</show_in_default>
-                            <show_in_website>1</show_in_website>
-                            <show_in_store>1</show_in_store>
-                        </allowspecific>
-                        <specificcountry translate="label">
-                            <label>Payment from specific countries</label>
-                            <frontend_type>multiselect</frontend_type>
-                            <sort_order>60</sort_order>
-                            <source_model>adminhtml/system_config_source_country</source_model>
-                            <show_in_default>1</show_in_default>
-                            <show_in_website>1</show_in_website>
-                            <show_in_store>1</show_in_store>
-                            <depends><allowspecific>1</allowspecific></depends>
-                        </specificcountry>
                         <visible_type>
                             <label>Visible in</label>
                             <frontend_type>select</frontend_type>
                             <source_model>adyen/source_VisibleType</source_model>
-                            <sort_order>70</sort_order>
-                            <tooltip>Where do you want to show this payment method in the backend of Magento or in the frontend for the shoppers</tooltip>
+                            <sort_order>40</sort_order>
+                            <tooltip>Determine the visibility of this payment method in the frontend and/or backend of Magento.</tooltip>
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
                             <show_in_store>1</show_in_store>
                         </visible_type>
                     </fields>
-                </adyen_elv>
+                </adyen_multibanco>
             </groups>
         </payment>
     </sections>
