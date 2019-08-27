@@ -1,22 +1,26 @@
 <?php
 
 /**
+ *                       ######
+ *                       ######
+ * ############    ####( ######  #####. ######  ############   ############
+ * #############  #####( ######  #####. ######  #############  #############
+ *        ######  #####( ######  #####. ######  #####  ######  #####  ######
+ * ###### ######  #####( ######  #####. ######  #####  #####   #####  ######
+ * ###### ######  #####( ######  #####. ######  #####          #####  ######
+ * #############  #############  #############  #############  #####  ######
+ *  ############   ############  #############   ############  #####  ######
+ *                                      ######
+ *                               #############
+ *                               ############
+ *
  * Adyen Payment Module
  *
- * NOTICE OF LICENSE
+ * Copyright (c) 2019 Adyen B.V.
+ * This file is open source and available under the MIT license.
+ * See the LICENSE file for more info.
  *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * @category    Adyen
- * @package    Adyen_Payment
- * @copyright    Copyright (c) 2011 Adyen (http://www.adyen.com)
- * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Author: Adyen <magento@adyen.com>
  */
 
 /**
@@ -107,6 +111,7 @@ class Adyen_Payment_ProcessController extends Mage_Core_Controller_Front_Action
                 $additionalData[$key] = $value;
             }
         }
+
         $item->additionalData = $additionalData;
         return $item;
     }
@@ -219,7 +224,6 @@ class Adyen_Payment_ProcessController extends Mage_Core_Controller_Front_Action
                             // only cancel if 3D secure was not already successful
                             if (!$order->getPayment()->getAdditionalInformation('3d_successful')) {
                                 $order->addStatusHistoryComment(Mage::helper('adyen')->__('3D-secure validation was unsuccessful.'))->save();
-                                $session->addException($e, Mage::helper('adyen')->__($e->getMessage()));
                                 $this->cancel();
                             } else {
                                 // already succesfull so turn back to the success page
@@ -232,11 +236,15 @@ class Adyen_Payment_ProcessController extends Mage_Core_Controller_Front_Action
                     }
                 } // otherwise, redirect to the external URL
                 else {
-                    $order->setState(Mage_Sales_Model_Order::STATE_PENDING_PAYMENT, true,
-                        Mage::helper('adyen')->__('Customer was redirected to bank for 3D-secure validation. Once the shopper authenticated, the order status will be updated accordingly. 
+                    $order->setState(
+                        Mage_Sales_Model_Order::STATE_PENDING_PAYMENT, true,
+                        Mage::helper('adyen')->__(
+                            'Customer was redirected to bank for 3D-secure validation. Once the shopper authenticated, the order status will be updated accordingly. 
                         <br />Make sure that your notifications are being processed! 
                         <br />If the order is stuck on this status, the shopper abandoned the session. The payment can be seen as unsuccessful. 
-                        <br />The order can be automatically cancelled based on the OFFER_CLOSED notification. Please contact Adyen Support to enable this.'))->save();
+                        <br />The order can be automatically cancelled based on the OFFER_CLOSED notification. Please contact Adyen Support to enable this.'
+                        )
+                    )->save();
                     $this->getResponse()->setBody(
                         $this->getLayout()->createBlock($this->_redirectBlockType)->setOrder($order)->toHtml()
                     );
@@ -349,7 +357,10 @@ class Adyen_Payment_ProcessController extends Mage_Core_Controller_Front_Action
         $session->replaceQuote($quote);
 
         // if setting failed_attempt_disable is on and the payment method is openinvoice ignore this payment mehthod the second time
-        if ($this->_getConfigData('failed_attempt_disable', 'adyen_openinvoice') && $order->getPayment()->getMethod() == "adyen_openinvoice") {
+        if ($this->_getConfigData(
+            'failed_attempt_disable',
+            'adyen_openinvoice'
+        ) && $order->getPayment()->getMethod() == "adyen_openinvoice") {
             // check if payment failed
             $response = $this->getRequest()->getParams();
             if ($response['authResult'] == "REFUSED") {
@@ -386,18 +397,8 @@ class Adyen_Payment_ProcessController extends Mage_Core_Controller_Front_Action
         } else {
             $session->addError($this->__('Your payment failed, Please try again later'));
         }
-
-        // if payment method is adyen_pos or adyen_cash redirect to checkout if the kiosk mode is turned off
-        if (!$this->_getConfigData('express_checkout_kiosk_mode', 'adyen_pos') && ($order->getPayment()->getMethod() == "adyen_pos" || $order->getPayment()->getMethod() == "adyen_cash")) {
-
-            // add email to session so this can be shown
-            $session->setAdyenEmailShopper($order->getCustomerEmail());
-
-            $redirect = Mage::getUrl('checkout/cart');
-            $this->_redirectUrl($redirect);
-        } else {
-            $this->_redirectCheckoutCart();
-        }
+        
+        $this->_redirectCheckoutCart();
     }
 
     protected function _redirectCheckoutCart()
@@ -418,23 +419,10 @@ class Adyen_Payment_ProcessController extends Mage_Core_Controller_Front_Action
     public function insAction()
     {
         try {
-            // if version is in the notification string show the module version
             $response = $this->getRequest()->getParams();
-            if (isset($response['version'])) {
-                $helper = Mage::helper('adyen');
-                $this->getResponse()->setBody($helper->getExtensionVersion());
-                return $this;
-            }
-
-            if (isset($response['magento_version'])) {
-                $version = Mage::getVersion();
-                $this->getResponse()->setBody($version);
-                return $this;
-            }
-
             $notificationMode = isset($response['live']) ? $response['live'] : "";
 
-            if ($notificationMode != "" && $this->_validateNotificationMode($notificationMode)) {
+            if ($notificationMode !== "" && $this->_validateNotificationMode($notificationMode)) {
                 // add HTTP POST attributes as an array so it is the same as JSON and SOAP result
                 foreach ($response as $key => $value) {
                     if (strpos($key, '_') !== false) {
@@ -454,7 +442,6 @@ class Adyen_Payment_ProcessController extends Mage_Core_Controller_Front_Action
                 $result = $this->processNotification($response);
 
                 if (!empty($result['response']) && $result['response'] == "401") {
-
                     $this->getResponse()->setBody($result['message']);
                     $this->_return401();
                     return;
@@ -476,10 +463,10 @@ class Adyen_Payment_ProcessController extends Mage_Core_Controller_Front_Action
                 );
                 return;
             }
-
         } catch (Exception $e) {
             Adyen_Payment_Exception::logException($e);
         }
+
         return $this;
     }
 
@@ -490,15 +477,16 @@ class Adyen_Payment_ProcessController extends Mage_Core_Controller_Front_Action
 
             $notificationMode = isset($notificationItems['live']) ? $notificationItems['live'] : "";
 
-            if ($notificationMode != "" && $this->_validateNotificationMode($notificationMode)) {
+            if ($notificationMode !== "" && $this->_validateNotificationMode($notificationMode)) {
                 foreach ($notificationItems['notificationItems'] as $notificationItem) {
                     $result = $this->processNotification($notificationItem['NotificationRequestItem']);
-                       if (!empty($result['response']) && $result['response'] == "401") {
+                    if (!empty($result['response']) && $result['response'] == "401") {
                         $this->getResponse()->setBody($result['message']);
                         $this->_return401();
                         return;
                     }
                 }
+
                 $acceptedMessage = "[accepted]";
                 $cronCheckTest = $notificationItems['notificationItems'][0]['NotificationRequestItem']['pspReference'];
                 // Run the query for checking unprocessed notifications, do this only for test notifications coming from the Adyen Customer Area
@@ -508,6 +496,7 @@ class Adyen_Payment_ProcessController extends Mage_Core_Controller_Front_Action
                         $acceptedMessage .= "\nYou have " . $unprocessedNotifications . " unprocessed notifications.";
                     }
                 }
+
                 $this->getResponse()
                     ->clearHeader('Content-Type')
                     ->setHeader('Content-Type', 'text/html')
@@ -526,6 +515,7 @@ class Adyen_Payment_ProcessController extends Mage_Core_Controller_Front_Action
         } catch (Exception $e) {
             Mage::logException($e);
         }
+
         return $this;
     }
 
@@ -604,9 +594,12 @@ class Adyen_Payment_ProcessController extends Mage_Core_Controller_Front_Action
     protected function _validateNotificationMode($notificationMode)
     {
         $mode = $this->_getConfigData('demoMode');
-        if ($mode == 'Y' && $notificationMode == "false" || $mode == 'N' && $notificationMode == 'true') {
+
+        // Notification mode can be a string or a boolean
+        if ($mode == 'Y' && ($notificationMode == "false" || $notificationMode == false) || $mode == 'N' && ($notificationMode == 'true' || $notificationMode == true)) {
             return true;
         }
+
         return false;
     }
 
@@ -614,7 +607,7 @@ class Adyen_Payment_ProcessController extends Mage_Core_Controller_Front_Action
      * @desc Give Default settings
      * @param $code
      * @param null $paymentMethodCode
-     * @param null $storeId
+     * @param int|null $storeId
      * @return mixed
      */
     protected function _getConfigData($code, $paymentMethodCode = null, $storeId = null)
@@ -636,6 +629,28 @@ class Adyen_Payment_ProcessController extends Mage_Core_Controller_Front_Action
         } else {
             return false;
         }
+    }
+
+    public function validate3ds2Action(){
+        $session = $this->_getCheckout();
+        $order = $this->_getOrder();
+        $order->loadByIncrementId($session->getLastRealOrderId());
+        $order->setState(
+            Mage_Sales_Model_Order::STATE_PENDING_PAYMENT, true,
+            Mage::helper('adyen')->__(
+                'Customer is performing 3DS 2.0 validation. Once the shopper authenticated, the order status will be updated accordingly. 
+                        <br />Make sure that your notifications are being processed! 
+                        <br />If the order is stuck on this status, the shopper abandoned the session. The payment can be seen as unsuccessful. 
+                        <br />The order can be automatically cancelled based on the OFFER_CLOSED notification. Please contact Adyen Support to enable this.'
+            )
+        )->save();
+
+        $this->getResponse()->setBody(
+            $this->getLayout()
+                ->createBlock('adyen/threeds2')
+                ->setOrder($order)
+                ->toHtml()
+        );
     }
 
 }

@@ -1,23 +1,28 @@
 <?php
 
 /**
+ *                       ######
+ *                       ######
+ * ############    ####( ######  #####. ######  ############   ############
+ * #############  #####( ######  #####. ######  #############  #############
+ *        ######  #####( ######  #####. ######  #####  ######  #####  ######
+ * ###### ######  #####( ######  #####. ######  #####  #####   #####  ######
+ * ###### ######  #####( ######  #####. ######  #####          #####  ######
+ * #############  #############  #############  #############  #####  ######
+ *  ############   ############  #############   ############  #####  ######
+ *                                      ######
+ *                               #############
+ *                               ############
+ *
  * Adyen Payment Module
  *
- * NOTICE OF LICENSE
+ * Copyright (c) 2019 Adyen B.V.
+ * This file is open source and available under the MIT license.
+ * See the LICENSE file for more info.
  *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * @category	Adyen
- * @package	Adyen_Payment
- * @copyright	Copyright (c) 2011 Adyen (http://www.adyen.com)
- * @license	http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Author: Adyen <magento@adyen.com>
  */
+
 /**
  * @category   Payment Gateway
  * @package    Adyen_Payment
@@ -31,6 +36,11 @@ class Adyen_Payment_Helper_Data extends Mage_Payment_Helper_Data
     const KLARNA = "klarna";
     const RATEPAY = "ratepay";
     const AFTERPAY = "afterpay";
+    const CHECKOUT_CONTEXT_URL_LIVE = 'https://checkoutshopper-live.adyen.com/checkoutshopper/';
+    const CHECKOUT_CONTEXT_URL_TEST = 'https://checkoutshopper-test.adyen.com/checkoutshopper/';
+    const CHECKOUT_COMPONENT_JS = 'sdk/3.0.0/adyen.js';
+    const CHECKOUT_ENVIRONMENT_TEST = 'test';
+    const CHECKOUT_ENVIRONMENT_LIVE = 'live';
 
     /**
      * @return array
@@ -41,11 +51,13 @@ class Adyen_Payment_Helper_Data extends Mage_Payment_Helper_Data
         uasort($_types, array('Mage_Payment_Model_Config', 'compareCcTypes'));
         $types = array();
         foreach ($_types as $data) {
-            if (! $data['is_checkout']) {
+            if (!$data['is_checkout']) {
                 continue;
             }
+
             $types[$data['code']] = $data;
         }
+
         return $types;
     }
 
@@ -61,6 +73,7 @@ class Adyen_Payment_Helper_Data extends Mage_Payment_Helper_Data
         foreach ($_types as $data) {
             $types[$data['code_alt']] = $data;
         }
+
         return $types;
     }
 
@@ -75,6 +88,7 @@ class Adyen_Payment_Helper_Data extends Mage_Payment_Helper_Data
         foreach ($_types as $data) {
             $types[$data['code']] = $data['name'];
         }
+
         return $types;
     }
 
@@ -89,6 +103,7 @@ class Adyen_Payment_Helper_Data extends Mage_Payment_Helper_Data
         foreach ($_types as $data) {
             $types[$data['code']] = $data['name'];
         }
+
         return $types;
     }
 
@@ -103,6 +118,7 @@ class Adyen_Payment_Helper_Data extends Mage_Payment_Helper_Data
         foreach ($_types as $data) {
             $types[$data['code']] = $data['name'];
         }
+
         return $types;
     }
 
@@ -112,64 +128,7 @@ class Adyen_Payment_Helper_Data extends Mage_Payment_Helper_Data
      */
     public function getExtensionVersion()
     {
-        return (string) Mage::getConfig()->getModuleConfig('Adyen_Payment')->version;
-    }
-
-
-    /**
-     * @return bool|int
-     */
-    public function hasEnableScanner()
-    {
-        if(Mage::getStoreConfig('payment/adyen_pos/active')) {
-            return (int) Mage::getStoreConfig('payment/adyen_pos/enable_scanner');
-        }
-        return false;
-    }
-
-
-    /**
-     * @return int
-     */
-    public function hasAutoSubmitScanner()
-    {
-        return (int) Mage::getStoreConfig('payment/adyen_pos/auto_submit_scanner');
-    }
-
-
-    /**
-     * @return bool|int
-     */
-    public function hasExpressCheckout()
-    {
-        if(Mage::getStoreConfig('payment/adyen_pos/active')) {
-            // check if metmethod is available
-            $methodModel = Mage::getModel('adyen/adyen_pos');
-            if ($methodModel) {
-                if($methodModel->isAvailable()) {
-                    return (int) Mage::getStoreConfig('payment/adyen_pos/express_checkout');
-                }
-            }
-        }
-        return false;
-    }
-
-    /**
-     * @return bool|int
-     */
-    public function hasCashExpressCheckout()
-    {
-        if(Mage::getStoreConfig('payment/adyen_cash/active'))
-        {
-            // check if metmethod is available
-            $methodModel = Mage::getModel('adyen/adyen_cash');
-            if ($methodModel) {
-                if($methodModel->isAvailable()) {
-                    return (int) Mage::getStoreConfig('payment/adyen_cash/cash_express_checkout');
-                }
-            }
-        }
-        return false;
+        return (string)Mage::getConfig()->getModuleConfig('Adyen_Payment')->version;
     }
 
     /**
@@ -189,7 +148,7 @@ class Adyen_Payment_Helper_Data extends Mage_Payment_Helper_Data
      */
     public function formatAmount($amount, $currency)
     {
-        switch($currency) {
+        switch ($currency) {
             case "JPY":
             case "IDR":
             case "KRW":
@@ -231,7 +190,7 @@ class Adyen_Payment_Helper_Data extends Mage_Payment_Helper_Data
     public function originalAmount($amount, $currency)
     {
         // check the format
-        switch($currency) {
+        switch ($currency) {
             case "JPY":
             case "IDR":
             case "KRW":
@@ -281,7 +240,7 @@ class Adyen_Payment_Helper_Data extends Mage_Payment_Helper_Data
 
         $ccTypesMapper = Mage::helper('adyen')->getCcTypesAltData();
 
-        if(isset($ccTypesMapper[$ccType])) {
+        if (isset($ccTypesMapper[$ccType])) {
             $ccType = $ccTypesMapper[$ccType]['code'];
         }
 
@@ -297,12 +256,13 @@ class Adyen_Payment_Helper_Data extends Mage_Payment_Helper_Data
         if ($this->getConfigData('demoMode', null, $storeId) == 'Y') {
             return true;
         }
+
         return false;
     }
 
 
     /**
-     * @param null $storeId
+     * @param int|null $storeId
      *
      * @return mixed
      */
@@ -311,12 +271,13 @@ class Adyen_Payment_Helper_Data extends Mage_Payment_Helper_Data
         if ($this->getConfigDataDemoMode($storeId)) {
             return $this->getConfigData('ws_username_test', null, $storeId);
         }
+
         return $this->getConfigData('ws_username_live', null, $storeId);
     }
 
 
     /**
-     * @param null $storeId
+     * @param int|null $storeId
      *
      * @return string
      */
@@ -325,14 +286,29 @@ class Adyen_Payment_Helper_Data extends Mage_Payment_Helper_Data
         if ($this->getConfigDataDemoMode($storeId)) {
             return Mage::helper('core')->decrypt($this->getConfigData('ws_password_test', null, $storeId));
         }
+
         return Mage::helper('core')->decrypt($this->getConfigData('ws_password_live', null, $storeId));
+    }
+
+    /**
+     * @param int|null $storeId
+     *
+     * @return string
+     */
+    public function getConfigDataApiKey($storeId = null)
+    {
+        if ($this->getConfigDataDemoMode($storeId)) {
+            return Mage::helper('core')->decrypt($this->getConfigData('api_key_test', null, $storeId));
+        }
+
+        return Mage::helper('core')->decrypt($this->getConfigData('api_key_live', null, $storeId));
     }
 
 
     /**
      * @param      $code
      * @param null $paymentMethodCode
-     * @param null $storeId
+     * @param int|null $storeId
      * @deprecated please use getConfigData
      * @return mixed
      */
@@ -356,9 +332,11 @@ class Adyen_Payment_Helper_Data extends Mage_Payment_Helper_Data
         if (null === $storeId) {
             $storeId = Mage::app()->getStore()->getStoreId();
         }
+
         if (empty($paymentMethodCode)) {
             return trim(Mage::getStoreConfig("payment/adyen_abstract/$code", $storeId));
         }
+
         return trim(Mage::getStoreConfig("payment/$paymentMethodCode/$code", $storeId));
     }
 
@@ -371,15 +349,15 @@ class Adyen_Payment_Helper_Data extends Mage_Payment_Helper_Data
     {
         if (isset($_SERVER['HTTP_CLIENT_IP'])) {
             $ipaddress = $_SERVER['HTTP_CLIENT_IP'];
-        } elseif(isset($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+        } elseif (isset($_SERVER['HTTP_X_FORWARDED_FOR'])) {
             $ipaddress = $_SERVER['HTTP_X_FORWARDED_FOR'];
-        } elseif(isset($_SERVER['HTTP_X_FORWARDED'])) {
+        } elseif (isset($_SERVER['HTTP_X_FORWARDED'])) {
             $ipaddress = $_SERVER['HTTP_X_FORWARDED'];
-        }elseif(isset($_SERVER['HTTP_FORWARDED_FOR'])) {
+        } elseif (isset($_SERVER['HTTP_FORWARDED_FOR'])) {
             $ipaddress = $_SERVER['HTTP_FORWARDED_FOR'];
-        } elseif(isset($_SERVER['HTTP_FORWARDED'])) {
+        } elseif (isset($_SERVER['HTTP_FORWARDED'])) {
             $ipaddress = $_SERVER['HTTP_FORWARDED'];
-        } elseif(isset($_SERVER['REMOTE_ADDR'])) {
+        } elseif (isset($_SERVER['REMOTE_ADDR'])) {
             $ipaddress = $_SERVER['REMOTE_ADDR'];
         } else {
             $ipaddress = '';
@@ -437,12 +415,15 @@ class Adyen_Payment_Helper_Data extends Mage_Payment_Helper_Data
      */
     public function getStreet($address, $klarna = false)
     {
-        if (empty($address)) return false;
+        if (empty($address)) {
+            return false;
+        }
+
         $street = $this->formatStreet($address->getStreet(), $klarna);
         $streetName = $street['0'];
         unset($street['0']);
 //        $streetNr = implode('',$street);
-        $streetNr = implode(' ',$street);
+        $streetNr = implode(' ', $street);
 
         return new Varien_Object(array('name' => trim($streetName), 'house_number' => trim($streetNr)));
     }
@@ -461,8 +442,8 @@ class Adyen_Payment_Helper_Data extends Mage_Payment_Helper_Data
          * If ignore second line steet is enabled for klarna only look at the first addressfield
          * and try to substract housenumber
          */
-        if($klarna) {
-            if($this->getConfigData('ignore_second_address_field','adyen_openinvoice')) {
+        if ($klarna) {
+            if ($this->getConfigData('ignore_second_address_field', 'adyen_openinvoice')) {
                 $formatStreetOnMultiStreetLines = true;
             }
         }
@@ -472,12 +453,13 @@ class Adyen_Payment_Helper_Data extends Mage_Payment_Helper_Data
         }
 
         preg_match('/\s(\d+.*)$/i', $street['0'], $houseNumber, PREG_OFFSET_CAPTURE);
-        if(!empty($houseNumber['0'])) {
+        if (!empty($houseNumber['0'])) {
             $_houseNumber = trim($houseNumber['0']['0']);
             $position = $houseNumber['0']['1'];
             $streeName = trim(substr($street['0'], 0, $position));
-            $street = array($streeName,$_houseNumber);
+            $street = array($streeName, $_houseNumber);
         }
+
         return $street;
     }
 
@@ -512,9 +494,9 @@ class Adyen_Payment_Helper_Data extends Mage_Payment_Helper_Data
         );
         return $calculation->getRate($request->setProductClassId($taxClass));
     }
-    
+
     /**
-     * @param null $storeId
+     * @param int|null $storeId
      * @return mixed
      */
     public function getApplePayMerchantIdentifier($storeId = null)
@@ -522,11 +504,12 @@ class Adyen_Payment_Helper_Data extends Mage_Payment_Helper_Data
         if ($this->getConfigDataDemoMode($storeId)) {
             return $this->getConfigData('merchant_identifier_test', 'adyen_apple_pay', $storeId);
         }
+
         return $this->getConfigData('merchant_identifier_live', 'adyen_apple_pay', $storeId);
     }
-    
+
     /**
-     * @param null $storeId
+     * @param int|null $storeId
      * @return mixed
      */
     public function getApplePayFullPathLocationPEMFile($storeId = null)
@@ -534,6 +517,7 @@ class Adyen_Payment_Helper_Data extends Mage_Payment_Helper_Data
         if ($this->getConfigDataDemoMode($storeId)) {
             return $this->getConfigData('full_path_location_pem_file_test', 'adyen_apple_pay', $storeId);
         }
+
         return $this->getConfigData('full_path_location_pem_file_live', 'adyen_apple_pay', $storeId);
     }
 
@@ -546,12 +530,12 @@ class Adyen_Payment_Helper_Data extends Mage_Payment_Helper_Data
      */
     public function isOpenInvoice($paymentMethod)
     {
-        if( $this->isKlarna($paymentMethod)  ||
+        if ($this->isKlarna($paymentMethod) ||
             strcmp($paymentMethod, self::RATEPAY) === 0 ||
-            $this->isAfterPay($paymentMethod))
-        {
+            $this->isAfterPay($paymentMethod)) {
             return true;
         }
+
         return false;
     }
 
@@ -563,9 +547,10 @@ class Adyen_Payment_Helper_Data extends Mage_Payment_Helper_Data
      */
     public function isAfterPay($paymentMethod)
     {
-        if(strcmp(substr($paymentMethod, 0, 8), self::AFTERPAY) === 0) {
+        if (strcmp(substr($paymentMethod, 0, 8), self::AFTERPAY) === 0) {
             return true;
         }
+
         return false;
     }
 
@@ -575,9 +560,10 @@ class Adyen_Payment_Helper_Data extends Mage_Payment_Helper_Data
      */
     public function isKlarna($paymentMethod)
     {
-        if(strcmp(substr($paymentMethod, 0, 6), self::KLARNA) === 0) {
+        if (strcmp(substr($paymentMethod, 0, 6), self::KLARNA) === 0) {
             return true;
         }
+
         return false;
     }
 
@@ -593,6 +579,7 @@ class Adyen_Payment_Helper_Data extends Mage_Payment_Helper_Data
         } else {
             $session = Mage::getSingleton('checkout/session');
         }
+
         return $session;
     }
 
@@ -601,10 +588,127 @@ class Adyen_Payment_Helper_Data extends Mage_Payment_Helper_Data
     {
         // get collection of unprocessed notifications
         $collection = Mage::getModel('adyen/event_queue')->getCollection()
-            ->addFieldToFilter('created_at', array(
-                'to' => strtotime('-10 minutes', time()),
-                'datetime' => true));
+            ->addFieldToFilter(
+                'created_at', array(
+                    'to' => strtotime('-10 minutes', time()),
+                    'datetime' => true
+                )
+            );
 
         return $collection->getSize();
+    }
+
+    /**
+     * Return the ApiKey for the current store/mode
+     *
+     * @param int|null $storeId
+     * @return mixed
+     */
+    public function getPosApiKey($storeId = null)
+    {
+        if ($this->getConfigDataDemoMode($storeId)) {
+            return Mage::helper('core')->decrypt($this->getConfigData('api_key_test', "adyen_pos_cloud", $storeId));
+        }
+
+        return Mage::helper('core')->decrypt($this->getConfigData('api_key_live', "adyen_pos_cloud", $storeId));
+    }
+
+    /**
+     * Return the merchant account name configured for the proper payment method.
+     * If it is not configured for the specific payment method,
+     * return the merchant account name defined in required settings.
+     *
+     * @param $paymentMethod
+     * @param int|null $storeId
+     * @return string
+     */
+    public function getAdyenMerchantAccount($paymentMethod, $storeId = null)
+    {
+        $merchantAccount = trim($this->getConfigData('merchantAccount', 'adyen_abstract', $storeId));
+        $merchantAccountPos = trim($this->getConfigData('pos_merchant_account', 'adyen_pos_cloud', $storeId));
+        if ($paymentMethod == 'pos_cloud' && !empty($merchantAccountPos)) {
+            return $merchantAccountPos;
+        }
+
+        return $merchantAccount;
+    }
+
+    /**
+     * Format the Receipt sent in the Terminal API response in HTML
+     * so that it can be easily shown to the shopper
+     *
+     * @param $paymentReceipt
+     * @return string
+     */
+    public function formatTerminalAPIReceipt($paymentReceipt)
+    {
+        $formattedHtml = "<table class='terminal-api-receipt'>";
+        foreach ($paymentReceipt as $receipt) {
+            if ($receipt['DocumentQualifier'] == "CustomerReceipt") {
+                foreach ($receipt['OutputContent']['OutputText'] as $item) {
+                    parse_str($item['Text'], $textParts);
+                    $formattedHtml .= "<tr class='terminal-api-receipt'>";
+                    if (!empty($textParts['name'])) {
+                        $formattedHtml .= "<td class='terminal-api-receipt-name'>" . $textParts['name'] . "</td>";
+                    } else {
+                        $formattedHtml .= "<td class='terminal-api-receipt-name'>&nbsp;</td>";
+                    }
+
+                    if (!empty($textParts['value'])) {
+                        $formattedHtml .= "<td class='terminal-api-receipt-value' align='right'>" . $textParts['value'] . "</td>";
+                    } else {
+                        $formattedHtml .= "<td class='terminal-api-receipt-value' align='right'>&nbsp;</td>";
+                    }
+
+                    $formattedHtml .= "</tr>";
+                }
+            }
+        }
+
+        $formattedHtml .= "</table>";
+        return $formattedHtml;
+    }
+
+    /**
+     * @param int|null $storeId
+     * @return string
+     */
+    public function getCheckoutContextUrl($storeId = null)
+    {
+        if (null === $storeId) {
+            $storeId = Mage::app()->getStore()->getStoreId();
+        }
+
+        if ($this->getConfigDataDemoMode($storeId)) {
+            return self::CHECKOUT_CONTEXT_URL_TEST;
+        }
+
+        return self::CHECKOUT_CONTEXT_URL_LIVE;
+    }
+
+    /**
+     * @param int|null $storeId
+     * @return string
+     */
+    public function getCheckoutCardComponentJs($storeId = null)
+    {
+        return $this->getCheckoutContextUrl($storeId) . self::CHECKOUT_COMPONENT_JS;
+    }
+
+    /**
+     * @param int|null $storeId
+     * @return string
+     */
+    public function getCheckoutEnvironment($storeId = null)
+    {
+        if (null === $storeId) {
+            $storeId = Mage::app()->getStore()->getStoreId();
+        }
+
+        if ($this->getConfigDataDemoMode($storeId)) {
+            return self::CHECKOUT_ENVIRONMENT_TEST;
+        }
+
+        return self::CHECKOUT_ENVIRONMENT_LIVE;
     }
 }

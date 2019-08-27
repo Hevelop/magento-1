@@ -1,22 +1,26 @@
 <?php
 
 /**
+ *                       ######
+ *                       ######
+ * ############    ####( ######  #####. ######  ############   ############
+ * #############  #####( ######  #####. ######  #############  #############
+ *        ######  #####( ######  #####. ######  #####  ######  #####  ######
+ * ###### ######  #####( ######  #####. ######  #####  #####   #####  ######
+ * ###### ######  #####( ######  #####. ######  #####          #####  ######
+ * #############  #############  #############  #############  #####  ######
+ *  ############   ############  #############   ############  #####  ######
+ *                                      ######
+ *                               #############
+ *                               ############
+ *
  * Adyen Payment Module
  *
- * NOTICE OF LICENSE
+ * Copyright (c) 2019 Adyen B.V.
+ * This file is open source and available under the MIT license.
+ * See the LICENSE file for more info.
  *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * @category    Adyen
- * @package    Adyen_Payment
- * @copyright    Copyright (c) 2011 Adyen (http://www.adyen.com)
- * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Author: Adyen <magento@adyen.com>
  */
 
 /**
@@ -42,15 +46,20 @@ class Adyen_Payment_Helper_Payment extends Adyen_Payment_Helper_Data
      * @param bool $hppOptionsDisabled
      * @return string
      */
-    public function getFormUrl($brandCode, $isConfigDemoMode = false, $paymentRoutine = 'single', $hppOptionsDisabled = true)
-    {
+    public function getFormUrl(
+        $brandCode,
+        $isConfigDemoMode = false,
+        $paymentRoutine = 'single',
+        $hppOptionsDisabled = true
+    ) {
         $baseUrl = 'https://' . ($isConfigDemoMode ? 'test' : 'live') . '.adyen.com/hpp/';
 
         if ($paymentRoutine == 'single' && $hppOptionsDisabled) {
             return "{$baseUrl}pay.shtml";
         }
 
-        if (!empty($brandCode) && (Mage::helper('adyen')->isOpenInvoice($brandCode) || $brandCode == "cofinoga_3xcb" || $brandCode == "cofinoga_4xcb")) {
+        if (!empty($brandCode) && (Mage::helper('adyen')->isOpenInvoice($brandCode) || $brandCode == "cofinoga_3xcb" || $brandCode == "cofinoga_4xcb" || strpos($brandCode,
+                    'facilypay_') !== false)) {
             return "{$baseUrl}skipDetails.shtml";
         }
 
@@ -62,9 +71,9 @@ class Adyen_Payment_Helper_Payment extends Adyen_Payment_Helper_Data
      * @param bool $isConfigDemoMode
      * @return string
      */
-    public function prepareFieldsforUrl($fields, $isConfigDemoMode = false)
+    public function prepareFieldsforUrl($fields, $isConfigDemoMode = false, $paymentRoutine)
     {
-        $url = $this->getFormUrl(null, $isConfigDemoMode);
+        $url = $this->getFormUrl(null, $isConfigDemoMode, $paymentRoutine);
 
         // Issue some empty values will not be presenting in the url causing signature issues
 //        if (count($fields)) {
@@ -77,10 +86,12 @@ class Adyen_Payment_Helper_Payment extends Adyen_Payment_Helper_Data
             if ($count == 0) {
                 $url .= "?";
             }
+
             $url .= urlencode($field) . "=" . urlencode($value);
             if ($count != $size) {
                 $url .= "&";
             }
+
             ++$count;
         }
 
@@ -128,8 +139,7 @@ class Adyen_Payment_Helper_Payment extends Adyen_Payment_Helper_Data
         $paymentMethodCode,
         $hasDeliveryAddress,
         $order
-    )
-    {
+    ) {
         // check if Pay By Mail has a skincode, otherwise use HPP
         $skinCode = trim($this->getConfigData('skin_code', $paymentMethodCode, $orderStoreId));
         if ($skinCode == "") {
@@ -177,7 +187,10 @@ class Adyen_Payment_Helper_Payment extends Adyen_Payment_Helper_Data
         $shopperType = $viewDetails['customer_info'];
 
         // set Shopper, Billing and DeliveryAddress
-        $shopperInfo = $this->getHppShopperDetails($order->getBillingAddress(), $order->getCustomerGender(), $order->getCustomerDob());
+        $shopperInfo = $this->getHppShopperDetails(
+            $order->getBillingAddress(), $order->getCustomerGender(),
+            $order->getCustomerDob()
+        );
         $billingAddress = $this->getHppBillingAddressDetails($order->getBillingAddress());
         $deliveryAddress = $this->getHppDeliveryAddressDetails($order->getShippingAddress());
         $openInvoiceData = $this->getOpenInvoiceData($incrementId, $order);
@@ -195,7 +208,12 @@ class Adyen_Payment_Helper_Payment extends Adyen_Payment_Helper_Data
 
         // type of payment method (card)
         $brandCode = $paymentMethodCode == Adyen_Payment_Model_Adyen_Openinvoice::METHODCODE ?
-            trim($this->getConfigData('openinvoicetypes', Adyen_Payment_Model_Adyen_Openinvoice::METHODCODE, $orderStoreId)) :
+            trim(
+                $this->getConfigData(
+                    'openinvoicetypes', Adyen_Payment_Model_Adyen_Openinvoice::METHODCODE,
+                    $orderStoreId
+                )
+            ) :
             trim($infoInstanceCCType);
 
         // Risk offset, 0 to 100 points
@@ -246,15 +264,19 @@ class Adyen_Payment_Helper_Payment extends Adyen_Payment_Helper_Data
 
         // eventHandler to overwrite the adyFields without changing module code
         $adyFields = new Varien_Object($adyFields);
-        Mage::dispatchEvent('adyen_payment_prepare_fields', array(
-            'fields' => $adyFields
-        ));
+        Mage::dispatchEvent(
+            'adyen_payment_prepare_fields', array(
+                'fields' => $adyFields
+            )
+        );
 
         // @deprecated in favor of above event, this one is left in for backwards compatibility
-        Mage::dispatchEvent('adyen_payment_hpp_fields', array(
-            'order' => $order,
-            'fields' => $adyFields
-        ));
+        Mage::dispatchEvent(
+            'adyen_payment_hpp_fields', array(
+                'order' => $order,
+                'fields' => $adyFields
+            )
+        );
         $adyFields = $adyFields->getData();
 
         return $adyFields;
@@ -316,8 +338,7 @@ class Adyen_Payment_Helper_Payment extends Adyen_Payment_Helper_Data
         $deliveryAddress,
         $openInvoiceData,
         $dfValue = null
-    )
-    {
+    ) {
         $adyFields = array(
             'merchantAccount' => $merchantAccount,
             'merchantReference' => $merchantReference,
@@ -374,11 +395,12 @@ class Adyen_Payment_Helper_Payment extends Adyen_Payment_Helper_Data
                 $adyFields[$name . '.' . $field] = $value;
             }
         }
+
         return $adyFields;
     }
 
     /**
-     * @param null $storeId
+     * @param int|null $storeId
      * @param $paymentMethodCode
      * @return string
      */
@@ -397,6 +419,7 @@ class Adyen_Payment_Helper_Payment extends Adyen_Payment_Helper_Data
                 $secretWord = trim($this->getConfigData('secret_wordp', $paymentMethodCode, $storeId));
                 break;
         }
+
         return $secretWord;
     }
 
@@ -423,10 +446,14 @@ class Adyen_Payment_Helper_Payment extends Adyen_Payment_Helper_Data
     {
         ksort($adyFields, SORT_STRING);
 
-        $signData = implode(":", array_map(array($this, 'escapeString'), array_merge(
-            array_keys($adyFields),
-            array_values($adyFields)
-        )));
+        $signData = implode(
+            ":", array_map(
+                array($this, 'escapeString'), array_merge(
+                    array_keys($adyFields),
+                    array_values($adyFields)
+                )
+            )
+        );
 
         $signMac = Zend_Crypt_Hmac::compute(pack("H*", $secretWord), 'sha256', $signData);
 
@@ -480,7 +507,10 @@ class Adyen_Payment_Helper_Payment extends Adyen_Payment_Helper_Data
             $deliveryAddressType = "1"; // yes, but not editable
 
             // get shopperType setting
-            $shopperType = $this->getConfigData("shoppertype", Adyen_Payment_Model_Adyen_Openinvoice::METHODCODE) == '1' ? "" : "1"; // only for openinvoice show this
+            $shopperType = $this->getConfigData(
+                "shoppertype",
+                Adyen_Payment_Model_Adyen_Openinvoice::METHODCODE
+            ) == '1' ? "" : "1"; // only for openinvoice show this
         } else {
             $shopperType = "";
             // for other payment methods like creditcard don't show the address field on the HPP page
@@ -536,6 +566,7 @@ class Adyen_Payment_Helper_Payment extends Adyen_Payment_Helper_Data
         if (strlen($date) < 0) {
             $date = date('d-m-Y H:i:s');
         }
+
         $timeStamp = new DateTime($date);
         return $timeStamp->format($format);
     }
@@ -552,6 +583,7 @@ class Adyen_Payment_Helper_Payment extends Adyen_Payment_Helper_Data
         } elseif ($genderId == '2') {
             $result = 'FEMALE';
         }
+
         return $result;
     }
 
@@ -575,7 +607,12 @@ class Adyen_Payment_Helper_Payment extends Adyen_Payment_Helper_Data
         }
 
         if ($this->getStreet($billingAddress, true)->getHouseNumber() != "") {
-            $billingAddressRequest['houseNumberOrName'] = trim($this->getStreet($billingAddress, true)->getHouseNumber());
+            $billingAddressRequest['houseNumberOrName'] = trim(
+                $this->getStreet(
+                    $billingAddress,
+                    true
+                )->getHouseNumber()
+            );
         }
 
         if (trim($billingAddress->getCity()) != "") {
@@ -627,7 +664,12 @@ class Adyen_Payment_Helper_Payment extends Adyen_Payment_Helper_Data
         }
 
         if (trim($this->getStreet($deliveryAddress, true)->getHouseNumber()) != "") {
-            $deliveryAddressRequest['houseNumberOrName'] = trim($this->getStreet($deliveryAddress, true)->getHouseNumber());
+            $deliveryAddressRequest['houseNumberOrName'] = trim(
+                $this->getStreet(
+                    $deliveryAddress,
+                    true
+                )->getHouseNumber()
+            );
         }
 
         if (trim($deliveryAddress->getCity()) != "") {
@@ -664,17 +706,30 @@ class Adyen_Payment_Helper_Payment extends Adyen_Payment_Helper_Data
 
         // loop through items
         foreach ($order->getItemsCollection() as $item) {
-
             //skip dummies
-            if ($item->isDummy()) continue;
+            if ($item->isDummy()) {
+                continue;
+            }
 
             ++$count;
 
             $linename = "line" . $count;
             $openInvoiceData['openinvoicedata.' . $linename . '.currencyCode'] = $currency;
-            $openInvoiceData['openinvoicedata.' . $linename . '.description'] = str_replace("\n", '', trim($item->getName()));
-            $openInvoiceData['openinvoicedata.' . $linename . '.itemAmount'] = $this->formatAmount($item->getPrice(), $currency);
-            $openInvoiceData['openinvoicedata.' . $linename . '.itemVatAmount'] = ($item->getTaxAmount() > 0 && $item->getPriceInclTax() > 0) ? $this->formatAmount($item->getPriceInclTax(), $currency) - $this->formatAmount($item->getPrice(), $currency) : $this->formatAmount($item->getTaxAmount(), $currency);
+            $openInvoiceData['openinvoicedata.' . $linename . '.description'] = str_replace(
+                "\n", '',
+                trim($item->getName())
+            );
+            $openInvoiceData['openinvoicedata.' . $linename . '.itemAmount'] = $this->formatAmount(
+                $item->getPrice(),
+                $currency
+            );
+            $openInvoiceData['openinvoicedata.' . $linename . '.itemVatAmount'] = ($item->getTaxAmount() > 0 && $item->getPriceInclTax() > 0) ? $this->formatAmount(
+                $item->getPriceInclTax(),
+                $currency
+            ) - $this->formatAmount(
+                $item->getPrice(),
+                $currency
+            ) : $this->formatAmount($item->getTaxAmount(), $currency);
             // Calculate vat percentage
             $id = $item->getProductId();
             $product = $this->loadProductById($id);
@@ -689,17 +744,23 @@ class Adyen_Payment_Helper_Payment extends Adyen_Payment_Helper_Data
                 $openInvoiceData['openinvoicedata.' . $linename . '.vatCategory'] = "None";
             }
 
-            // Needed for RatePay
+            // Needed for RatePay and Oney
             if ($item->getSku() != "") {
                 $openInvoiceData['openinvoicedata.' . $linename . '.itemId'] = $item->getSku();
+            } elseif ($item->getId() != "") {
+                $openInvoiceData['openinvoicedata.' . $linename . '.itemId'] = $item->getId();
             }
         }
+
         //discount cost
         if ($order->getDiscountAmount() > 0 || $order->getDiscountAmount() < 0) {
             $linename = "line" . ++$count;
             $openInvoiceData['openinvoicedata.' . $linename . '.currencyCode'] = $currency;
             $openInvoiceData['openinvoicedata.' . $linename . '.description'] = $this->__('Total Discount');
-            $openInvoiceData['openinvoicedata.' . $linename . '.itemAmount'] = $this->formatAmount($order->getDiscountAmount(), $currency);
+            $openInvoiceData['openinvoicedata.' . $linename . '.itemAmount'] = $this->formatAmount(
+                $order->getDiscountAmount(),
+                $currency
+            );
             $openInvoiceData['openinvoicedata.' . $linename . '.itemVatAmount'] = "0";
             $openInvoiceData['openinvoicedata.' . $linename . '.itemVatPercentage'] = "0";
             $openInvoiceData['openinvoicedata.' . $linename . '.numberOfItems'] = 1;
@@ -709,13 +770,20 @@ class Adyen_Payment_Helper_Payment extends Adyen_Payment_Helper_Data
                 $openInvoiceData['openinvoicedata.' . $linename . '.vatCategory'] = "None";
             }
         }
+
         //shipping cost
         if ($order->getShippingAmount() > 0 || $order->getShippingTaxAmount() > 0) {
             $linename = "line" . ++$count;
             $openInvoiceData['openinvoicedata.' . $linename . '.currencyCode'] = $currency;
             $openInvoiceData['openinvoicedata.' . $linename . '.description'] = $order->getShippingDescription();
-            $openInvoiceData['openinvoicedata.' . $linename . '.itemAmount'] = $this->formatAmount($order->getShippingAmount(), $currency);
-            $openInvoiceData['openinvoicedata.' . $linename . '.itemVatAmount'] = $this->formatAmount($order->getShippingTaxAmount(), $currency);
+            $openInvoiceData['openinvoicedata.' . $linename . '.itemAmount'] = $this->formatAmount(
+                $order->getShippingAmount(),
+                $currency
+            );
+            $openInvoiceData['openinvoicedata.' . $linename . '.itemVatAmount'] = $this->formatAmount(
+                $order->getShippingTaxAmount(),
+                $currency
+            );
             // Calculate vat percentage
             $taxClass = Mage::getStoreConfig('tax/classes/shipping_tax_class', $order->getStoreId());
             $taxRate = $this->getTaxRate($order, $taxClass);
@@ -727,11 +795,15 @@ class Adyen_Payment_Helper_Payment extends Adyen_Payment_Helper_Data
                 $openInvoiceData['openinvoicedata.' . $linename . '.vatCategory'] = "None";
             }
         }
+
         if ($order->getPaymentFeeAmount() > 0) {
             $linename = "line" . ++$count;
             $openInvoiceData['openinvoicedata.' . $linename . '.currencyCode'] = $currency;
             $openInvoiceData['openinvoicedata.' . $linename . '.description'] = $this->__('Payment Fee');
-            $openInvoiceData['openinvoicedata.' . $linename . '.itemAmount'] = $this->formatAmount($order->getPaymentFeeAmount(), $currency);
+            $openInvoiceData['openinvoicedata.' . $linename . '.itemAmount'] = $this->formatAmount(
+                $order->getPaymentFeeAmount(),
+                $currency
+            );
             $openInvoiceData['openinvoicedata.' . $linename . '.itemVatAmount'] = "0";
             $openInvoiceData['openinvoicedata.' . $linename . '.itemVatPercentage'] = "0";
             $openInvoiceData['openinvoicedata.' . $linename . '.numberOfItems'] = 1;
@@ -759,6 +831,7 @@ class Adyen_Payment_Helper_Payment extends Adyen_Payment_Helper_Data
         if ($this->isOpenInvoiceMethod($paymentMethod->getMethod()) || Mage::helper('adyen')->isAfterPay($paymentMethod->getMethodInstance()->getInfoInstance()->getCcType())) {
             return true;
         }
+
         return false;
     }
 

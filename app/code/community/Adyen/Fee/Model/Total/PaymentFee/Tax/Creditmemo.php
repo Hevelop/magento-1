@@ -1,23 +1,28 @@
 <?php
 
 /**
+ *                       ######
+ *                       ######
+ * ############    ####( ######  #####. ######  ############   ############
+ * #############  #####( ######  #####. ######  #############  #############
+ *        ######  #####( ######  #####. ######  #####  ######  #####  ######
+ * ###### ######  #####( ######  #####. ######  #####  #####   #####  ######
+ * ###### ######  #####( ######  #####. ######  #####          #####  ######
+ * #############  #############  #############  #############  #####  ######
+ *  ############   ############  #############   ############  #####  ######
+ *                                      ######
+ *                               #############
+ *                               ############
+ *
  * Adyen Payment Module
  *
- * NOTICE OF LICENSE
+ * Copyright (c) 2019 Adyen B.V.
+ * This file is open source and available under the MIT license.
+ * See the LICENSE file for more info.
  *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * @category	Adyen
- * @package	Adyen_Payment
- * @copyright	Copyright (c) 2011 Adyen (http://www.adyen.com)
- * @license	http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Author: Adyen <magento@adyen.com>
  */
+
 /**
  * @category   Payment Gateway
  * @package    Adyen_Payment
@@ -32,8 +37,8 @@ class Adyen_Fee_Model_Total_PaymentFee_Tax_Creditmemo extends Mage_Sales_Model_O
         $order = $creditmemo->getOrder();
 
         //recalculate tax amounts in case if refund shipping value was changed
-        if ((float) $creditmemo->getBasePaymentFeeAmount() > 0 && (float) $order->getBasePaymentFeeAmount() > 0) {
-            $taxFactor = $creditmemo->getBasePaymentFeeAmount()/$order->getBasePaymentFeeAmount();
+        if ((float)$creditmemo->getBasePaymentFeeAmount() > 0 && (float)$order->getBasePaymentFeeAmount() > 0) {
+            $taxFactor = $creditmemo->getBasePaymentFeeAmount() / $order->getBasePaymentFeeAmount();
             $paymentFeeTax = $creditmemo->getPaymentFeeTax() * $taxFactor;
             $paymentBaseFeeTax = $creditmemo->getBasePaymentFeeTax() * $taxFactor;
         } else {
@@ -46,8 +51,8 @@ class Adyen_Fee_Model_Total_PaymentFee_Tax_Creditmemo extends Mage_Sales_Model_O
         $creditmemo->setBasePaymentFeeTax($paymentBaseFeeTax);
 
         // use the tax fee to calculate total tax amount
-        $creditmemo->setTaxAmount($creditmemo->getTaxAmount()+$creditmemo->getPaymentFeeTax());
-        $creditmemo->setBaseTaxAmount($creditmemo->getBaseTaxAmount()+$creditmemo->getBasePaymentFeeTax());
+        $creditmemo->setTaxAmount($creditmemo->getTaxAmount() + $creditmemo->getPaymentFeeTax());
+        $creditmemo->setBaseTaxAmount($creditmemo->getBaseTaxAmount() + $creditmemo->getBasePaymentFeeTax());
 
         return $this;
     }

@@ -1,23 +1,28 @@
 <?php
 
 /**
+ *                       ######
+ *                       ######
+ * ############    ####( ######  #####. ######  ############   ############
+ * #############  #####( ######  #####. ######  #############  #############
+ *        ######  #####( ######  #####. ######  #####  ######  #####  ######
+ * ###### ######  #####( ######  #####. ######  #####  #####   #####  ######
+ * ###### ######  #####( ######  #####. ######  #####          #####  ######
+ * #############  #############  #############  #############  #####  ######
+ *  ############   ############  #############   ############  #####  ######
+ *                                      ######
+ *                               #############
+ *                               ############
+ *
  * Adyen Payment Module
  *
- * NOTICE OF LICENSE
+ * Copyright (c) 2019 Adyen B.V.
+ * This file is open source and available under the MIT license.
+ * See the LICENSE file for more info.
  *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * @category	Adyen
- * @package	Adyen_Payment
- * @copyright	Copyright (c) 2011 Adyen (http://www.adyen.com)
- * @license	http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Author: Adyen <magento@adyen.com>
  */
+
 /**
  * @category   Payment Gateway
  * @package    Adyen_Payment
@@ -42,7 +47,7 @@ class Adyen_Fee_Model_Sales_Quote_Address_Total_Tax_PaymentFee extends Mage_Sale
         $address->setPaymentFeeTax(0);
         $address->setBasePaymentFeeTax(0);
 
-        if ($address->getQuote()->getId() == NULL) {
+        if ($address->getQuote()->getId() == null) {
             return $this;
         }
 
@@ -65,21 +70,25 @@ class Adyen_Fee_Model_Sales_Quote_Address_Total_Tax_PaymentFee extends Mage_Sale
 
         $PaymentFeeTaxClass = $config->getPaymentFeeTaxClass($store);
 
-        $paymentFeeTax      = 0;
-        $paymentFeeBaseTax  = 0;
+        $paymentFeeTax = 0;
+        $paymentFeeBaseTax = 0;
 
         if ($PaymentFeeTaxClass) {
             if ($rate = $taxCalculationModel->getRate($request->setProductClassId($PaymentFeeTaxClass))) {
-
-                $paymentFeeTax = $taxCalculationModel->calcTaxAmount($address->getPaymentFeeAmount(), $rate, false, true);
-                $paymentFeeBaseTax = $taxCalculationModel->calcTaxAmount($address->getBasePaymentFeeAmount(), $rate, false, true);
+                $paymentFeeTax = $taxCalculationModel->calcTaxAmount(
+                    $address->getPaymentFeeAmount(), $rate, false,
+                    true
+                );
+                $paymentFeeBaseTax = $taxCalculationModel->calcTaxAmount(
+                    $address->getBasePaymentFeeAmount(), $rate,
+                    false, true
+                );
 
                 $address->setTaxAmount($address->getTaxAmount() + $paymentFeeTax);
                 $address->setBaseTaxAmount($address->getBaseTaxAmount() + $paymentFeeBaseTax);
 
                 $address->setGrandTotal($address->getGrandTotal() + $paymentFeeTax);
                 $address->setBaseGrandTotal($address->getBaseGrandTotal() + $paymentFeeBaseTax);
-
             }
         }
 
@@ -93,23 +102,26 @@ class Adyen_Fee_Model_Sales_Quote_Address_Total_Tax_PaymentFee extends Mage_Sale
     {
         $store = $address->getQuote()->getStore();
         $taxConfig = Mage::getSingleton('tax/config');
-        $salesHelper =  Mage::helper('sales');
+        $salesHelper = Mage::helper('sales');
 
         if ($taxConfig->displayCartSubtotalBoth($store) || $taxConfig->displayCartSubtotalInclTax($store)) {
             if ($address->getSubtotalInclTax() > 0) {
                 $subtotalInclTax = $address->getSubtotalInclTax();
             } else {
-                $subtotalInclTax = $address->getSubtotal()+$address->getTaxAmount()-$address->getShippingTaxAmount()-$address->getPaymentFeeTax();
+                $subtotalInclTax = $address->getSubtotal() + $address->getTaxAmount() - $address->getShippingTaxAmount() - $address->getPaymentFeeTax();
             }
 
-            $address->addTotal(array(
-                'code'      => 'subtotal',
-                'title'     => $salesHelper->__('Subtotal'),
-                'value'     => $subtotalInclTax,
-                'value_incl_tax' => $subtotalInclTax,
-                'value_excl_tax' => $address->getSubtotal(),
-            ));
+            $address->addTotal(
+                array(
+                    'code' => 'subtotal',
+                    'title' => $salesHelper->__('Subtotal'),
+                    'value' => $subtotalInclTax,
+                    'value_incl_tax' => $subtotalInclTax,
+                    'value_excl_tax' => $address->getSubtotal(),
+                )
+            );
         }
+
         return $this;
     }
 

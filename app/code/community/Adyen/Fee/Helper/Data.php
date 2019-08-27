@@ -1,23 +1,28 @@
 <?php
 
 /**
+ *                       ######
+ *                       ######
+ * ############    ####( ######  #####. ######  ############   ############
+ * #############  #####( ######  #####. ######  #############  #############
+ *        ######  #####( ######  #####. ######  #####  ######  #####  ######
+ * ###### ######  #####( ######  #####. ######  #####  #####   #####  ######
+ * ###### ######  #####( ######  #####. ######  #####          #####  ######
+ * #############  #############  #############  #############  #####  ######
+ *  ############   ############  #############   ############  #####  ######
+ *                                      ######
+ *                               #############
+ *                               ############
+ *
  * Adyen Payment Module
  *
- * NOTICE OF LICENSE
+ * Copyright (c) 2019 Adyen B.V.
+ * This file is open source and available under the MIT license.
+ * See the LICENSE file for more info.
  *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * @category	Adyen
- * @package	Adyen_Payment
- * @copyright	Copyright (c) 2011 Adyen (http://www.adyen.com)
- * @license	http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Author: Adyen <magento@adyen.com>
  */
+
 /**
  * @category   Payment Gateway
  * @package    Adyen_Payment
@@ -31,7 +36,7 @@ class Adyen_Fee_Helper_Data extends Mage_Payment_Helper_Data
     /**
      * payment fee for adyen hpp payment method
      */
-    const XML_PATH_HPP_PAYMENT_METHOD_FEE   = 'payment/adyen_hpp/fee';
+    const XML_PATH_HPP_PAYMENT_METHOD_FEE = 'payment/adyen_hpp/fee';
 
     /**
      * Check if payment method is enabled
@@ -43,21 +48,19 @@ class Adyen_Fee_Helper_Data extends Mage_Payment_Helper_Data
     {
         $paymentMethod = $quote->getPayment()->getMethod();
 
-        if($paymentMethod == 'adyen_openinvoice')
-        {
+        if ($paymentMethod == 'adyen_openinvoice') {
             $fee = Mage::getStoreConfig('payment/adyen_openinvoice/fee');
-            if($fee) {
+            if ($fee) {
                 return true;
             }
-        } elseif($paymentMethod == 'adyen_ideal') {
+        } elseif ($paymentMethod == 'adyen_ideal') {
             $fee = Mage::getStoreConfig('payment/adyen_ideal/fee');
-            if($fee) {
+            if ($fee) {
                 return true;
             }
-        } elseif(substr($paymentMethod,0, 10)  == 'adyen_hpp_') {
-
+        } elseif (substr($paymentMethod, 0, 10) == 'adyen_hpp_') {
             $fee = $this->getHppPaymentMethodFee($paymentMethod);
-            if($fee) {
+            if ($fee) {
                 return true;
             }
         }
@@ -76,11 +79,12 @@ class Adyen_Fee_Helper_Data extends Mage_Payment_Helper_Data
         $paymentMethod = $quote->getPayment()->getMethod();
         if ($paymentMethod == 'adyen_openinvoice') {
             return Mage::getStoreConfig('payment/adyen_openinvoice/fee');
-        } elseif($paymentMethod == 'adyen_ideal') {
+        } elseif ($paymentMethod == 'adyen_ideal') {
             return Mage::getStoreConfig('payment/adyen_ideal/fee');
-        } elseif(substr($paymentMethod,0, 10)  == 'adyen_hpp_') {
+        } elseif (substr($paymentMethod, 0, 10) == 'adyen_hpp_') {
             return $this->getHppPaymentMethodFee($paymentMethod);
         }
+
         return 0;
     }
 
@@ -108,16 +112,16 @@ class Adyen_Fee_Helper_Data extends Mage_Payment_Helper_Data
 
         $paymentFees = $this->getHppPaymentMethodFees();
 
-        if($paymentFees && is_array($paymentFees) && !empty($paymentFees)) {
-
-            foreach($paymentFees as $paymentFee) {
-                if(isset($paymentFee['code']) && $paymentFee['code'] == $paymentMethod) {
-                    if(isset($paymentFee['amount'])) {
+        if ($paymentFees && is_array($paymentFees) && !empty($paymentFees)) {
+            foreach ($paymentFees as $paymentFee) {
+                if (isset($paymentFee['code']) && $paymentFee['code'] == $paymentMethod) {
+                    if (isset($paymentFee['amount'])) {
                         return $paymentFee['amount'];
                     }
                 }
             }
         }
+
         return null;
     }
 
@@ -132,16 +136,16 @@ class Adyen_Fee_Helper_Data extends Mage_Payment_Helper_Data
         $paymentMethod = str_replace('adyen_hpp_', '', $paymentMethod);
         $paymentFees = $this->getHppPaymentMethodFees();
 
-        if($paymentFees && is_array($paymentFees) && !empty($paymentFees)) {
-
-            foreach($paymentFees as $paymentFee) {
-                if(isset($paymentFee['code']) && $paymentFee['code'] == $paymentMethod) {
-                    if(isset($paymentFee['percentage']) && $paymentFee['percentage']) {
+        if ($paymentFees && is_array($paymentFees) && !empty($paymentFees)) {
+            foreach ($paymentFees as $paymentFee) {
+                if (isset($paymentFee['code']) && $paymentFee['code'] == $paymentMethod) {
+                    if (isset($paymentFee['percentage']) && $paymentFee['percentage']) {
                         return $paymentFee['percentage'];
                     }
                 }
             }
         }
+
         return null;
     }
 
@@ -160,6 +164,7 @@ class Adyen_Fee_Helper_Data extends Mage_Payment_Helper_Data
         if ($fee && $config->paymentFeePriceIncludesTax($store)) {
             $fee -= $this->getPaymentFeeVat($address);
         }
+
         return $fee;
     }
 
@@ -180,13 +185,20 @@ class Adyen_Fee_Helper_Data extends Mage_Payment_Helper_Data
             $config = Mage::getSingleton('adyen_fee/tax_config');
             $custTaxClassId = $quote->getCustomerTaxClassId();
             $taxCalculationModel = Mage::getSingleton('tax/calculation');
-            $request = $taxCalculationModel->getRateRequest($shippingAddress, $quote->getBillingAddress(), $custTaxClassId, $store);
+            $request = $taxCalculationModel->getRateRequest(
+                $shippingAddress, $quote->getBillingAddress(),
+                $custTaxClassId, $store
+            );
             $paymentTaxClass = $config->getPaymentFeeTaxClass($store);
             $rate = $taxCalculationModel->getRate($request->setProductClassId($paymentTaxClass));
             if ($rate) {
-                $paymentTax = $taxCalculationModel->calcTaxAmount($fee, $rate, $config->paymentFeePriceIncludesTax($store), true);
+                $paymentTax = $taxCalculationModel->calcTaxAmount(
+                    $fee, $rate,
+                    $config->paymentFeePriceIncludesTax($store), true
+                );
             }
         }
+
         return $paymentTax;
     }
 

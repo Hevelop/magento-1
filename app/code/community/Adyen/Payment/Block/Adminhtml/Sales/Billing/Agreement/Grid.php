@@ -1,22 +1,27 @@
 <?php
 /**
+ *                       ######
+ *                       ######
+ * ############    ####( ######  #####. ######  ############   ############
+ * #############  #####( ######  #####. ######  #############  #############
+ *        ######  #####( ######  #####. ######  #####  ######  #####  ######
+ * ###### ######  #####( ######  #####. ######  #####  #####   #####  ######
+ * ###### ######  #####( ######  #####. ######  #####          #####  ######
+ * #############  #############  #############  #############  #####  ######
+ *  ############   ############  #############   ############  #####  ######
+ *                                      ######
+ *                               #############
+ *                               ############
+ *
  * Adyen Payment Module
  *
- * NOTICE OF LICENSE
+ * Copyright (c) 2019 Adyen B.V.
+ * This file is open source and available under the MIT license.
+ * See the LICENSE file for more info.
  *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * @category	Adyen
- * @package	Adyen_Payment
- * @copyright	Copyright (c) 2011 Adyen (http://www.adyen.com)
- * @license	http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Author: Adyen <magento@adyen.com>
  */
+
 /**
  * @category   Payment Gateway
  * @package    Adyen_Payment
@@ -24,9 +29,9 @@
  * @property   Adyen B.V
  * @copyright  Copyright (c) 2014 Adyen BV (http://www.adyen.com)
  */
- 
 class Adyen_Payment_Block_Adminhtml_Sales_Billing_Agreement_Grid
-    extends Mage_Sales_Block_Adminhtml_Billing_Agreement_Grid {
+    extends Mage_Sales_Block_Adminhtml_Billing_Agreement_Grid
+{
 
     /**
      * Prepare collection for grid
@@ -45,6 +50,7 @@ class Adyen_Payment_Block_Adminhtml_Sales_Billing_Agreement_Grid
         call_user_func(array(get_parent_class(get_parent_class($this)), __FUNCTION__));
         return $this;
     }
+
     /**
      * Add columns to grid
      *
@@ -56,17 +62,22 @@ class Adyen_Payment_Block_Adminhtml_Sales_Billing_Agreement_Grid
 
         $this->removeColumn('customer_firstname');
         $this->removeColumn('customer_lastname');
-        $this->addColumnAfter('agreement_label', array(
-            'header'            => Mage::helper('sales')->__('Agreement Label'),
-            'index'             => 'agreement_label',
-            'type'              => 'text',
-        ), 'status');
+        $this->addColumnAfter(
+            'agreement_label', array(
+            'header' => Mage::helper('sales')->__('Agreement Label'),
+            'index' => 'agreement_label',
+            'type' => 'text',
+            ), 'status'
+        );
 
-        $this->addColumnAfter('name', array(
-            'header'            => Mage::helper('customer')->__('Name'),
-            'index'             => 'name',
-            'type'              => 'text',
-        ), 'customer_email');
+        $this->addColumnAfter(
+            'name', array(
+            'header' => Mage::helper('customer')->__('Name'),
+            'index' => 'name',
+            'type' => 'text',
+            'escape' => true
+            ), 'customer_email'
+        );
 
 //        $status = $this->getColumn('status');
 //        $status->setData('frame_callback', [$this, 'decorateStatus']);

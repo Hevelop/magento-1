@@ -1,23 +1,28 @@
 <?php
 
 /**
+ *                       ######
+ *                       ######
+ * ############    ####( ######  #####. ######  ############   ############
+ * #############  #####( ######  #####. ######  #############  #############
+ *        ######  #####( ######  #####. ######  #####  ######  #####  ######
+ * ###### ######  #####( ######  #####. ######  #####  #####   #####  ######
+ * ###### ######  #####( ######  #####. ######  #####          #####  ######
+ * #############  #############  #############  #############  #####  ######
+ *  ############   ############  #############   ############  #####  ######
+ *                                      ######
+ *                               #############
+ *                               ############
+ *
  * Adyen Payment Module
  *
- * NOTICE OF LICENSE
+ * Copyright (c) 2019 Adyen B.V.
+ * This file is open source and available under the MIT license.
+ * See the LICENSE file for more info.
  *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * @category	Adyen
- * @package	Adyen_Payment
- * @copyright	Copyright (c) 2011 Adyen (http://www.adyen.com)
- * @license	http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Author: Adyen <magento@adyen.com>
  */
+
 /**
  * @category   Payment Gateway
  * @package    Adyen_Payment
@@ -25,7 +30,6 @@
  * @property   Adyen B.V
  * @copyright  Copyright (c) 2014 Adyen BV (http://www.adyen.com)
  */
-
 class Adyen_Payment_ApplePayController extends Mage_Core_Controller_Front_Action
 {
 
@@ -50,9 +54,9 @@ class Adyen_Payment_ApplePayController extends Mage_Core_Controller_Front_Action
         $displayName = Mage::app()->getStore()->getName();
 
         $data = '{
-            "merchantIdentifier":"'. $merchantIdentifier . '",
-            "domainName":"'. $domainName . '",
-            "displayName":"'. $displayName . '"
+            "merchantIdentifier":"' . $merchantIdentifier . '",
+            "domainName":"' . $domainName . '",
+            "displayName":"' . $displayName . '"
         }';
 
         curl_setopt($ch, CURLOPT_URL, $validationUrl);
@@ -63,10 +67,13 @@ class Adyen_Payment_ApplePayController extends Mage_Core_Controller_Front_Action
         curl_setopt($ch, CURLOPT_SSLCERT, $fullPathLocationPEMFile);
         curl_setopt($ch, CURLOPT_POST, 1);
         curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+        curl_setopt(
+            $ch, CURLOPT_HTTPHEADER, array(
                 'Content-Type: application/json',
-                'Content-Length: ' . strlen($data))
+                'Content-Length: ' . strlen($data)
+            )
         );
+        curl_setopt($ch, CURLOPT_FRESH_CONNECT, 1); 
 
         $result = curl_exec($ch);
         $httpStatus = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -74,9 +81,18 @@ class Adyen_Payment_ApplePayController extends Mage_Core_Controller_Front_Action
         $message = curl_error($ch);
 
         if ($httpStatus != 200 && $result) {
-            Mage::log("Check if your PEM file location is correct location is now defined:" . $fullPathLocationPEMFile, Zend_Log::ERR, 'adyen_exception.log');
-            Mage::log("Apple Merchant Valdiation Failed. Please check merchantIdentifier, domainname and PEM file. Request is: " . var_export($data,true) . "RESULT:" . $result . " HTTPS STATUS:" . $httpStatus . "VALIDATION URL:" . $validationUrl, Zend_Log::ERR, 'adyen_exception.log');
-        } elseif(!$result) {
+            Mage::log(
+                "Check if your PEM file location is correct location is now defined:" . $fullPathLocationPEMFile,
+                Zend_Log::ERR, 'adyen_exception.log'
+            );
+            Mage::log(
+                "Apple Merchant Valdiation Failed. Please check merchantIdentifier, domainname and PEM file. Request is: " . var_export(
+                    $data,
+                    true
+                ) . "RESULT:" . $result . " HTTPS STATUS:" . $httpStatus . "VALIDATION URL:" . $validationUrl,
+                Zend_Log::ERR, 'adyen_exception.log'
+            );
+        } elseif (!$result) {
             $errno = curl_errno($ch);
             $message = curl_error($ch);
 
@@ -101,35 +117,38 @@ class Adyen_Payment_ApplePayController extends Mage_Core_Controller_Front_Action
         $params = $this->getRequest()->getParams();
 
         // allow empty parameters because this can happen if you have an invalid address in wallet on phone
+        $country = "";
         if(isset($params['country'])) {
-            $country = $params['country'];
-        } else {
-            $country = "";
+            $country = strtoupper($params['country']);
         }
 
+        $zipcode = "";
         if(isset($params['zipcode'])) {
-            $zipcode = $params['zipcode'];
-        } else {
-            $zipcode = "";
+            $zipcode = trim($params['zipcode']);
+            // ApplePay only provides the 1st part of a UK postcode.
+            // add a dummy 2nd part for correct postcode rate matching 
+            if($country == 'GB') {
+              $zipcode .= ' 5EZ';
+            }
         }
 
+        $productId = "";
         if(isset($params['productId'])) {
             $productId = $params['productId'];
-        } else {
-            $productId = "";
         }
 
+        $qty = 1;
         if(isset($params['qty'])) {
             $qty = $params['qty'];
-        } else {
-            $qty = 1;
         }
 
         // is it from the cart or from a product ??
         // needs to be done for setting payment method!
         if ($productId != "" && $productId > 0) {
-
-            $shippingCosts = $this->calculateShippingCosts($productId, $country, Mage::app()->getStore()->getId(), $qty);
+            $shippingCosts = $this->calculateShippingCosts(
+                $productId, $country, Mage::app()->getStore()->getId(),
+                $qty
+            );
             $costs = array();
             foreach ($shippingCosts as $identifier => $shippingCost) {
                 $costs[] = array(
@@ -142,7 +161,6 @@ class Adyen_Payment_ApplePayController extends Mage_Core_Controller_Front_Action
 
             $this->getResponse()->setBody(json_encode($costs));
             return $this;
-
         } else {
             $cart = Mage::getSingleton('checkout/cart');
             $address = $cart->getQuote()->getShippingAddress();
@@ -155,15 +173,38 @@ class Adyen_Payment_ApplePayController extends Mage_Core_Controller_Front_Action
             $rates = $address->collectShippingRates()
                 ->getGroupedAllShippingRates();
 
+            // Refresh totals - they might have changed with new address/tax
+            $totals = $cart->getQuote()->getTotals();
+            $config = Mage::getSingleton('tax/config');
+
+            $total = 0;
+            if(isset($totals['grand_total']) && $totals['grand_total']->getValue()) {
+              $total = $totals["grand_total"]->getValue();
+            }
+
             $costs = array();
             foreach ($rates as $carrier) {
                 foreach ($carrier as $rate) {
-                    $costs[] = array(
-                        'label' => trim($rate->getCarrierTitle()),
+
+                    // get shipping with correct tax applied, convert to correct currency for store/customer & strip currency symbols.
+                    $shipping_amount = Mage::helper('tax')->getShippingPrice($rate->getPrice(), true, $address);
+                    $shipping_amount = Mage::helper('core')->currency($shipping_amount,$format=true,$incContainer=false); 
+                    $shipping_amount = FILTER_VAR($shipping_amount, FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION);
+
+                    $cost = new Varien_Object(array(
+                        'label' => trim($rate->getMethodTitle()),
                         'detail' => '',
-                        'amount' => $rate->getPrice(),
-                        'identifier' => $rate->getCode()
-                    );
+                        'amount' => $shipping_amount,
+                        'identifier' => $rate->getCode(),
+                        // refresh total with inclusive/exclusive tax
+                        // may have changed with new address
+                        'total' => $total,
+                        'subtotal' => $total - $shipping_amount,
+                    ));
+                    // allow shipping method to be updated by 3rd party extension
+                    // e.g. stores/ developers may want to update label
+                    Mage::dispatchEvent('adyen_apple_pay_shipping_rate_init', array('cost'=>$cost, 'rate'=> $rate, 'address'=>$address));
+                    $costs[] = $cost->toArray();
                 }
             }
         }
@@ -203,8 +244,7 @@ class Adyen_Payment_ApplePayController extends Mage_Core_Controller_Front_Action
         $model = Mage::getModel('shipping/shipping')->collectRates($request);
         $costs = array();
 
-        foreach($model->getResult()->getAllRates() as $shippingRate) {
-
+        foreach ($model->getResult()->getAllRates() as $shippingRate) {
             $rate = Mage::getModel('sales/quote_address_rate')
                 ->importShippingRate($shippingRate);
 
@@ -214,6 +254,7 @@ class Adyen_Payment_ApplePayController extends Mage_Core_Controller_Front_Action
                 'price' => $rate->getPrice()
             );
         }
+
         return $costs;
     }
 
@@ -235,7 +276,7 @@ class Adyen_Payment_ApplePayController extends Mage_Core_Controller_Front_Action
         }
 
         $qty = $params['qty'];
-        $shippingMethod = $params['shippingMethod'];
+        $shippingMethod = isset($params['shippingMethod']) ? $params['shippingMethod'] : null;
         $payment = json_decode($params['payment']);
 
 
@@ -246,7 +287,7 @@ class Adyen_Payment_ApplePayController extends Mage_Core_Controller_Front_Action
 
         $token = json_encode($payment->token->paymentData);
 
-        if(isset($params['productId']) && $params['productId'] > 0) {
+        if (isset($params['productId']) && $params['productId'] > 0) {
             $productId = $params['productId'];
             $quote = Mage::getModel('sales/quote');
         } else {
@@ -258,13 +299,19 @@ class Adyen_Payment_ApplePayController extends Mage_Core_Controller_Front_Action
         if (Mage::getSingleton('customer/session')->isLoggedIn()) {
             $customer = Mage::getSingleton('customer/session')->getCustomer();
             $quote = $quote->assignCustomer($customer);
+        } else {
+            if (!empty($payment->shippingContact->emailAddress)) {
+                $quote->setCustomerEmail($payment->shippingContact->emailAddress);
+            } else {
+                Mage::throwException(Mage::helper('adyen')->__('Missing email address in payment'));
+            }
         }
 
         // override shippingContact and DeliveryContact
-        if(!empty($payment->billingContact) && !empty($payment->shippingContact)) {
+        if (!empty($payment->billingContact) && !empty($payment->shippingContact)) {
             try {
                 $this->updateBillingAddress($quote, $payment->billingContact, $payment->shippingContact);
-            } catch(Exception $e) {
+            } catch (Exception $e) {
                 Mage::logException($e);
                 $this->getResponse()->setBody("ERROR BILLING");
                 return $this;
@@ -272,7 +319,7 @@ class Adyen_Payment_ApplePayController extends Mage_Core_Controller_Front_Action
 
             try {
                 $this->updateShippingAddress($quote, $payment->shippingContact);
-            } catch(Exception $e) {
+            } catch (Exception $e) {
                 Mage::logException($e);
                 $this->getResponse()->setBody("ERROR SHIPPING");
                 return $this;
@@ -280,20 +327,25 @@ class Adyen_Payment_ApplePayController extends Mage_Core_Controller_Front_Action
         }
 
         // needs to be done for setting payment method!
-        if(isset($params['productId']) && $params['productId'] > 0) {
+        if (isset($params['productId']) && $params['productId'] > 0) {
             $product = Mage::getModel('catalog/product')->load($productId);
-            $quote->addProduct($product , $qty);
+            $quote->addProduct($product, $qty);
         }
 
-        if($shippingMethod)
-        {
+        if ($shippingMethod) {
             $shippingAddress = $quote->getShippingAddress();
             $shippingAddress->setCollectShippingRates(true)->collectShippingRates()
                 ->setShippingMethod($shippingMethod)
                 ->setPaymentMethod('adyen_apple_pay');
         }
 
-        $quote->getPayment()->importData(array('method' => 'adyen_apple_pay', 'token' => $token, 'allow_apple_pay' => '1'));
+        $quote->getPayment()->importData(
+            array(
+            'method' => 'adyen_apple_pay',
+            'token' => $token,
+            'allow_apple_pay' => '1'
+            )
+        );
         $quote->collectTotals();
         $quote->save();
         $service = Mage::getModel('sales/service_quote', $quote);
@@ -314,8 +366,6 @@ class Adyen_Payment_ApplePayController extends Mage_Core_Controller_Front_Action
             $session->unsAdyenRealOrderId();
             $session->setQuoteId($session->getAdyenQuoteId(true));
             $session->getQuote()->setIsActive(false)->save();
-
-
         } catch (Exception $e) {
             Mage::logException($e);
             $result = "ERROR";
@@ -334,7 +384,7 @@ class Adyen_Payment_ApplePayController extends Mage_Core_Controller_Front_Action
     {
         $addressLines = $billingContact->addressLines;
         $size = count($billingContact->addressLines);
-        if($size > 1) {
+        if ($size > 1) {
             $billingStreet = implode("\n", $addressLines);
         } else {
             $billingStreet = $addressLines[0];
@@ -349,7 +399,10 @@ class Adyen_Payment_ApplePayController extends Mage_Core_Controller_Front_Action
 
         $regionId = '';
         if ($billingContact->administrativeArea && $billingContact->countryCode) {
-            $region = Mage::getModel('directory/region')->loadByCode($billingContact->administrativeArea, $billingContact->countryCode);
+            $region = Mage::getModel('directory/region')->loadByCode(
+                $billingContact->administrativeArea,
+                $billingContact->countryCode
+            );
             $regionId = $region->getId();
         }
 
@@ -359,7 +412,7 @@ class Adyen_Payment_ApplePayController extends Mage_Core_Controller_Front_Action
 
         $billingAddress = array(
             'firstname' => $billingContact->givenName,
-            'lastname' =>  $billingContact->familyName,
+            'lastname' => $billingContact->familyName,
             'street' => $billingStreet,
             'city' => $billingContact->locality,
             'country_id' => $countryId,
@@ -377,7 +430,10 @@ class Adyen_Payment_ApplePayController extends Mage_Core_Controller_Front_Action
         $addressValidation = $quote->getBillingAddress()->validate();
         if ($addressValidation !== true) {
             Mage::log("Billing Contract:" . print_r($billingContact, 1), Zend_Log::DEBUG, 'adyen_apple_pay.log');
-            Mage::log("Billing Validation Error" . print_r($addressValidation, 1) . print_r($billingAddress, 1), Zend_Log::DEBUG, 'adyen_apple_pay.log');
+            Mage::log(
+                "Billing Validation Error" . print_r($addressValidation, 1) . print_r($billingAddress, 1),
+                Zend_Log::DEBUG, 'adyen_apple_pay.log'
+            );
             Mage::throwException(Mage::helper('adyen')->__('Error Billing address validation'));
         }
     }
@@ -392,7 +448,7 @@ class Adyen_Payment_ApplePayController extends Mage_Core_Controller_Front_Action
         // SHIPPING
         $addressLines = $shippingContact->addressLines;
         $size = count($shippingContact->addressLines);
-        if($size > 1) {
+        if ($size > 1) {
             $street = implode("\n", $addressLines);
         } else {
             $street = $addressLines[0];
@@ -400,7 +456,10 @@ class Adyen_Payment_ApplePayController extends Mage_Core_Controller_Front_Action
 
         $regionId = '';
         if ($shippingContact->administrativeArea && $shippingContact->countryCode) {
-            $region = Mage::getModel('directory/region')->loadByCode($shippingContact->administrativeArea, $shippingContact->countryCode);
+            $region = Mage::getModel('directory/region')->loadByCode(
+                $shippingContact->administrativeArea,
+                $shippingContact->countryCode
+            );
             $regionId = $region->getId();
         }
 
@@ -410,7 +469,7 @@ class Adyen_Payment_ApplePayController extends Mage_Core_Controller_Front_Action
 
         $shippingAddress = array(
             'firstname' => $shippingContact->givenName,
-            'lastname' =>  $shippingContact->familyName,
+            'lastname' => $shippingContact->familyName,
             'street' => $street,
             'city' => $shippingContact->locality,
             'country_id' => $countryId,
@@ -427,7 +486,10 @@ class Adyen_Payment_ApplePayController extends Mage_Core_Controller_Front_Action
 
         $addressValidation = $quote->getShippingAddress()->validate();
         if ($addressValidation !== true) {
-            Mage::log("Shipping Validation Error" . print_r($addressValidation, 1), Zend_Log::DEBUG, 'adyen_apple_pay.log');
+            Mage::log(
+                "Shipping Validation Error" . print_r($addressValidation, 1), Zend_Log::DEBUG,
+                'adyen_apple_pay.log'
+            );
             Mage::throwException(Mage::helper('adyen')->__('Error Shipping address validation'));
         }
     }

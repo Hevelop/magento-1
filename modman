@@ -18,8 +18,11 @@ app/locale/de_DE/Adyen_Payment.csv    app/locale/de_DE/Adyen_Payment.csv
 js/adyen           js/adyen
 shell/adyen.php    shell/adyen.php
 
-skin/frontend/base/default/css/adyen.css        skin/frontend/base/default/css/adyen.css
-skin/frontend/base/default/css/adyenstyle.css   skin/frontend/base/default/css/adyenstyle.css
-skin/frontend/base/default/images/adyen         skin/frontend/base/default/images/adyen
-skin/adminhtml/default/default/images/adyen     skin/adminhtml/default/default/images/adyen
+skin/frontend/base/default/css/adyen.css            skin/frontend/base/default/css/adyen.css
+skin/frontend/base/default/css/adyenstyle.css       skin/frontend/base/default/css/adyenstyle.css
+skin/frontend/base/default/css/adyencheckout.css    skin/frontend/base/default/css/adyencheckout.css
+skin/frontend/base/default/images/adyen             skin/frontend/base/default/images/adyen
+skin/adminhtml/default/default/adyencheckout.css    skin/adminhtml/default/default/adyencheckout.css
+skin/adminhtml/default/default/adyenstyle.css       skin/adminhtml/default/default/adyenstyle.css
+skin/adminhtml/default/default/images/adyen         skin/adminhtml/default/default/images/adyen
 

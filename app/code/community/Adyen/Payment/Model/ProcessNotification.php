@@ -1,22 +1,26 @@
 <?php
 
 /**
+ *                       ######
+ *                       ######
+ * ############    ####( ######  #####. ######  ############   ############
+ * #############  #####( ######  #####. ######  #############  #############
+ *        ######  #####( ######  #####. ######  #####  ######  #####  ######
+ * ###### ######  #####( ######  #####. ######  #####  #####   #####  ######
+ * ###### ######  #####( ######  #####. ######  #####          #####  ######
+ * #############  #############  #############  #############  #####  ######
+ *  ############   ############  #############   ############  #####  ######
+ *                                      ######
+ *                               #############
+ *                               ############
+ *
  * Adyen Payment Module
  *
- * NOTICE OF LICENSE
+ * Copyright (c) 2019 Adyen B.V.
+ * This file is open source and available under the MIT license.
+ * See the LICENSE file for more info.
  *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * @category    Adyen
- * @package    Adyen_Payment
- * @copyright    Copyright (c) 2011 Adyen (http://www.adyen.com)
- * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Author: Adyen <magento@adyen.com>
  */
 
 /**
@@ -72,6 +76,7 @@ class Adyen_Payment_Model_ProcessNotification extends Mage_Core_Model_Abstract
         foreach ($response as $code => $value) {
             $params->setData($code, $value);
         }
+
         $actionName = $this->_getRequest()->getActionName();
 
         // authenticate result url
@@ -100,7 +105,6 @@ class Adyen_Payment_Model_ProcessNotification extends Mage_Core_Model_Abstract
 
         // check if notification is not duplicate
         if (!$this->_isDuplicate($params)) {
-
             $incrementId = $params->getData('merchantReference');
 
             if ($incrementId) {
@@ -112,6 +116,7 @@ class Adyen_Payment_Model_ProcessNotification extends Mage_Core_Model_Abstract
         } else {
             $this->_debugData['processResponse info'] = 'Skipping duplicate notification';
         }
+
         $this->_debug($storeId);
     }
 
@@ -149,6 +154,7 @@ class Adyen_Payment_Model_ProcessNotification extends Mage_Core_Model_Abstract
         if ($isDuplicate && $eventCode != Adyen_Payment_Model_Event::ADYEN_EVENT_RECURRING_CONTRACT) {
             return true;
         }
+
         return false;
     }
 
@@ -201,7 +207,10 @@ class Adyen_Payment_Model_ProcessNotification extends Mage_Core_Model_Abstract
 
         $this->_debugData[$this->_count]['_updateOrder'] = 'Updating the order';
 
-        Mage::dispatchEvent('adyen_payment_process_notifications_before', array('order' => $order, 'adyen_response' => $params));
+        Mage::dispatchEvent(
+            'adyen_payment_process_notifications_before',
+            array('order' => $order, 'adyen_response' => $params)
+        );
         if ($params->getData('handled')) {
             $this->_debug($order->getStoreId());
             return;
@@ -218,7 +227,11 @@ class Adyen_Payment_Model_ProcessNotification extends Mage_Core_Model_Abstract
         $this->_updateAdyenAttributes($order, $params);
 
         // check if success is true of false or empty
-        if (strcmp($this->_success, 'false') == 0 || strcmp($this->_success, '0') == 0 || strcmp($this->_success, '') == 0) {
+        if (strcmp($this->_success, 'false') == 0 || strcmp($this->_success, '0') == 0 || strcmp(
+            $this->_success,
+            ''
+        ) == 0
+        ) {
             // Only cancel the order when it is in state pending, payment review or if the ORDER_CLOSED is failed (means split payment has not be successful)
             if ($order->getState() === Mage_Sales_Model_Order::STATE_PENDING_PAYMENT || $order->getState() === Mage_Sales_Model_Order::STATE_PAYMENT_REVIEW || $this->_eventCode == Adyen_Payment_Model_Event::ADYEN_EVENT_ORDER_CLOSED) {
                 $this->_debugData[$this->_count]['_updateOrder info'] = 'Going to cancel the order';
@@ -251,7 +264,10 @@ class Adyen_Payment_Model_ProcessNotification extends Mage_Core_Model_Abstract
         // save event for duplication
         $this->_storeNotification();
 
-        Mage::dispatchEvent('adyen_payment_process_notifications_after', array('order' => $order, 'adyen_response' => $params));
+        Mage::dispatchEvent(
+            'adyen_payment_process_notifications_after',
+            array('order' => $order, 'adyen_response' => $params)
+        );
     }
 
     protected function _declareCommonVariables($params)
@@ -298,7 +314,6 @@ class Adyen_Payment_Model_ProcessNotification extends Mage_Core_Model_Abstract
         }
 
         if ($additionalData && is_array($additionalData)) {
-
             // check if the payment is in status manual review
             $fraudManualReview = isset($additionalData['fraudManualReview']) ? $additionalData['fraudManualReview'] : "";
             if ($fraudManualReview == "true") {
@@ -318,6 +333,7 @@ class Adyen_Payment_Model_ProcessNotification extends Mage_Core_Model_Abstract
             if ($modification && is_array($modification)) {
                 $this->_modificationResult = isset($modification['action']) ? trim($modification['action']) : "";
             }
+
             $additionalData2 = isset($additionalData['additionalData']) ? $additionalData['additionalData'] : null;
             if ($additionalData2 && is_array($additionalData2)) {
                 $this->_klarnaReservationNumber = isset($additionalData2['acquirerReference']) ? trim($additionalData2['acquirerReference']) : "";
@@ -341,12 +357,15 @@ class Adyen_Payment_Model_ProcessNotification extends Mage_Core_Model_Abstract
             || $this->_eventCode == Adyen_Payment_Model_Event::ADYEN_EVENT_HANDLED_EXTERNALLY
             || ($this->_eventCode == Adyen_Payment_Model_Event::ADYEN_EVENT_CAPTURE && $_paymentCode == "adyen_pos")
         ) {
-
             $paymentObj->setLastTransId($this->_merchantReference)
                 ->setCcType($this->_paymentMethod);
 
             // if current notification is authorisation : false and the  previous notification was authorisation : true do not update pspreference
-            if (strcmp($this->_success, 'false') == 0 || strcmp($this->_success, '0') == 0 || strcmp($this->_success, '') == 0) {
+            if (strcmp($this->_success, 'false') == 0 || strcmp($this->_success, '0') == 0 || strcmp(
+                $this->_success,
+                ''
+            ) == 0
+            ) {
                 $previousAdyenEventCode = $order->getAdyenEventCode();
                 if ($previousAdyenEventCode != "AUTHORISATION : TRUE") {
                     $this->_updateOrderPaymentWithAdyenAttributes($paymentObj, $additionalData);
@@ -380,30 +399,39 @@ class Adyen_Payment_Model_ProcessNotification extends Mage_Core_Model_Abstract
         if ($this->_klarnaReservationNumber != "") {
             $paymentObj->setAdyenKlarnaNumber($this->_klarnaReservationNumber);
         }
+
         if (isset($ccLast4) && $ccLast4 != "") {
             $paymentObj->setccLast4($ccLast4);
         }
+
         if (isset($avsResult) && $avsResult != "") {
             $paymentObj->setAdyenAvsResult($avsResult);
         }
+
         if (isset($cvcResult) && $cvcResult != "") {
             $paymentObj->setAdyenCvcResult($cvcResult);
         }
+
         if ($this->_boletoPaidAmount != "") {
             $paymentObj->setAdyenBoletoPaidAmount($this->_boletoPaidAmount);
         }
+
         if (isset($totalFraudScore) && $totalFraudScore != "") {
             $paymentObj->setAdyenTotalFraudScore($totalFraudScore);
         }
+
         if (isset($refusalReasonRaw) && $refusalReasonRaw != "") {
             $paymentObj->setAdyenRefusalReasonRaw($refusalReasonRaw);
         }
+
         if (isset($acquirerReference) && $acquirerReference != "") {
             $paymentObj->setAdyenAcquirerReference($acquirerReference);
         }
+
         if (isset($authCode) && $authCode != "") {
             $paymentObj->setAdyenAuthCode($authCode);
         }
+
         if (isset($cardBin) && $cardBin != "") {
             $paymentObj->setAdyenCardBin($cardBin);
         }
@@ -426,6 +454,7 @@ class Adyen_Payment_Model_ProcessNotification extends Mage_Core_Model_Abstract
                 }
             }
         }
+
         return $result;
     }
 
@@ -470,7 +499,10 @@ class Adyen_Payment_Model_ProcessNotification extends Mage_Core_Model_Abstract
                 // do nothing only inform the merchant with order comment history
                 break;
             case Adyen_Payment_Model_Event::ADYEN_EVENT_REFUND:
-                $ignoreRefundNotification = $this->_getConfigData('ignore_refund_notification', 'adyen_abstract', $order->getStoreId());
+                $ignoreRefundNotification = $this->_getConfigData(
+                    'ignore_refund_notification', 'adyen_abstract',
+                    $order->getStoreId()
+                );
                 if ($ignoreRefundNotification != true) {
                     $this->_refundOrder($order);
                     //refund completed
@@ -518,6 +550,7 @@ class Adyen_Payment_Model_ProcessNotification extends Mage_Core_Model_Abstract
                     // Move the order from PAYMENT_REVIEW to NEW, so that can be cancelled
                     $order->setState(Mage_Sales_Model_Order::STATE_NEW);
                 }
+
                 $this->_holdCancelOrder($order, true);
                 break;
             case Adyen_Payment_Model_Event::ADYEN_EVENT_CAPTURE_FAILED:
@@ -537,7 +570,7 @@ class Adyen_Payment_Model_ProcessNotification extends Mage_Core_Model_Abstract
                 } else {
                     if ($order->isCanceled() || $order->getState() === Mage_Sales_Model_Order::STATE_HOLDED) {
                         $this->_debugData[$this->_count]['_processNotification info'] = 'Order is already cancelled or holded so do nothing';
-                    } else if ($order->canCancel() || $order->canHold()) {
+                    } elseif ($order->canCancel() || $order->canHold()) {
                         $this->_debugData[$this->_count]['_processNotification info'] = 'try to cancel the order';
                         $this->_holdCancelOrder($order, true);
                     } else {
@@ -559,98 +592,102 @@ class Adyen_Payment_Model_ProcessNotification extends Mage_Core_Model_Abstract
                 // storedReferenceCode
                 $recurringDetailReference = $this->_pspReference;
 
+                // set billing agreement data
+                $payment->setBillingAgreementData(
+                    array(
+                        'billing_agreement_id' => $recurringDetailReference,
+                        'method_code' => $_paymentCode
+                    )
+                );
+
                 // check if there is already a BillingAgreement
                 $agreement = Mage::getModel('adyen/billing_agreement')->load($recurringDetailReference, 'reference_id');
 
                 if ($agreement && $agreement->getAgreementId() > 0 && $agreement->isValid()) {
-
                     $this->_debugData[$this->_count]['process recurring contract exists'] = 'Billing agreement for recurring contract already exists so update it';
 
                     $agreement->addOrderRelation($order);
                     $agreement->setStatus($agreement::STATUS_ACTIVE);
                     $agreement->setIsObjectChanged(true);
-                    $order->addRelatedObject($agreement);
-                    $message = Mage::helper('adyen')->__('Used existing billing agreement #%s.', $agreement->getReferenceId());
 
+                    $message = Mage::helper('adyen')->__(
+                        'Used existing billing agreement #%s.',
+                        $agreement->getReferenceId()
+                    );
                 } else {
-
                     $this->_debugData[$this->_count]['process recurring contract new'] = 'Create a new billing agreement for this recurring contract';
-
-                    // set billing agreement data
-                    $payment->setBillingAgreementData(array(
-                        'billing_agreement_id' => $recurringDetailReference,
-                        'method_code' => $_paymentCode
-                    ));
 
                     // create billing agreement for this order
                     $agreement = Mage::getModel('adyen/billing_agreement');
                     $agreement->setStoreId($order->getStoreId());
                     $agreement->importOrderPayment($payment);
 
-                    $customerReference = $agreement->getCustomerReference();
+                    $message = Mage::helper('adyen')->__(
+                        'Created billing agreement #%s.',
+                        $agreement->getReferenceId()
+                    );
+                }
 
-                    if ($customerReference) {
+                $customerReference = $agreement->getCustomerReference();
 
-                        $this->_debugData[$this->_count]['process recurring contract customerref'] = 'There is a custumor reference';
+                if ($customerReference) {
+                    $this->_debugData[$this->_count]['process recurring contract customerref'] = 'There is a customer reference';
 
-                        $listRecurringContracts = Mage::getSingleton('adyen/api')->listRecurringContracts($agreement->getCustomerReference(), $agreement->getStoreId());
+                    $listRecurringContracts = Mage::getSingleton('adyen/api')->listRecurringContracts(
+                        $customerReference,
+                        $agreement->getStoreId()
+                    );
 
-                        $contractDetail = null;
-                        // get currenct Contract details and get list of all current ones
-                        $recurringReferencesList = array();
-                        foreach ($listRecurringContracts as $rc) {
-                            $recurringReferencesList[] = $rc['recurringDetailReference'];
-                            if (isset($rc['recurringDetailReference']) && $rc['recurringDetailReference'] == $recurringDetailReference) {
-                                $contractDetail = $rc;
-                            }
+                    $contractDetail = null;
+                    // get current Contract details and get list of all current ones
+                    $recurringReferencesList = array();
+                    foreach ($listRecurringContracts as $rc) {
+                        $recurringReferencesList[] = $rc['recurringDetailReference'];
+                        if (isset($rc['recurringDetailReference']) && $rc['recurringDetailReference'] == $recurringDetailReference) {
+                            $contractDetail = $rc;
                         }
+                    }
 
-                        if ($contractDetail != null) {
+                    if ($contractDetail != null) {
+                        $this->_debugData[$this->_count]['process recurring contract contractdetail'] = 'There is a contractDetail result';
 
-                            $this->_debugData[$this->_count]['process recurring contract contractdetail'] = 'There is a contractDetail result';
+                        $this->_updateExistingBillingAgreementsStatus(
+                            $customerReference,
+                            $recurringReferencesList
+                        );
 
-                            // update status of the agreements in magento
-                            $billingAgreements = Mage::getResourceModel('adyen/billing_agreement_collection')
-                                ->addFieldToFilter('customer_id', $agreement->getCustomerReference());
+                        $this->_debugData[$this->_count]['process recurring contract existing updated'] = 'The existing billing agreements are updated';
 
-                            foreach ($billingAgreements as $billingAgreement) {
-                                if (!in_array($billingAgreement->getReferenceId(), $recurringReferencesList)) {
-                                    $billingAgreement->setStatus(Adyen_Payment_Model_Billing_Agreement::STATUS_CANCELED);
-                                    $billingAgreement->save();
-                                } else {
-                                    $billingAgreement->setStatus(Adyen_Payment_Model_Billing_Agreement::STATUS_ACTIVE);
-                                    $billingAgreement->save();
-                                }
-                            }
+                        $agreement->parseRecurringContractData($contractDetail);
 
-                            $this->_debugData[$this->_count]['process recurring contract existing updated'] = 'The existing billing agreements are updated';
+                        if ($agreement->isValid()) {
+                            $this->_debugData[$this->_count]['process recurring contract billing agreement'] = 'The billing agreement is valid';
 
-                            $agreement->parseRecurringContractData($contractDetail);
 
-                            if ($agreement->isValid()) {
+                            // save into sales_billing_agreement_order
+                            $agreement->addOrderRelation($order);
 
-                                $this->_debugData[$this->_count]['process recurring contract billing agreement'] = 'The billing agreements is valid';
-                                $message = Mage::helper('adyen')->__('Created billing agreement #%s.', $agreement->getReferenceId());
-
-                                // save into sales_billing_agreement_order
-                                $agreement->addOrderRelation($order);
-
-                                // add to order to save agreement
-                                $order->addRelatedObject($agreement);
-                            } else {
-                                $this->_debugData[$this->_count]['process recurring contract billing agreement'] = 'The billing agreements is not valid';
-                                $message = Mage::helper('adyen')->__('Failed to create billing agreement for this order.');
-                            }
+                            // add to order to save agreement
+                            $order->addRelatedObject($agreement);
                         } else {
-                            $this->_debugData[$this->_count]['_processNotification error'] = 'Failed to create billing agreement for this order (listRecurringCall did not contain contract)';
-                            $this->_debugData[$this->_count]['_processNotification ref'] = sprintf('recurringDetailReference in notification is %s', $recurringDetailReference);
-                            $this->_debugData[$this->_count]['_processNotification customer ref'] = sprintf('CustomerReference is: %s and storeId is %s', $agreement->getCustomerReference(), $agreement->getStoreId());
-                            $this->_debugData[$this->_count]['_processNotification customer result'] = $listRecurringContracts;
-                            $message = Mage::helper('adyen')->__('Failed to create billing agreement for this order (listRecurringCall did not contain contract)');
+                            $this->_debugData[$this->_count]['process recurring contract billing agreement'] = 'The billing agreement is not valid';
+                            $message = Mage::helper('adyen')->__('Failed to create/update billing agreement for this order.');
                         }
                     } else {
-                        $this->_debugData[$this->_count]['_processNotification error'] = 'merchantReference is empty, probably checked out as quest we can\'t save billing agreemnents for quest checkout';
+                        $this->_debugData[$this->_count]['_processNotification error'] = 'Failed to create billing agreement for this order (listRecurringCall did not contain contract)';
+                        $this->_debugData[$this->_count]['_processNotification ref'] = sprintf(
+                            'recurringDetailReference in notification is %s',
+                            $recurringDetailReference
+                        );
+                        $this->_debugData[$this->_count]['_processNotification customer ref'] = sprintf(
+                            'CustomerReference is: %s and storeId is %s',
+                            $agreement->getCustomerReference(), $agreement->getStoreId()
+                        );
+                        $this->_debugData[$this->_count]['_processNotification customer result'] = $listRecurringContracts;
+                        $message = Mage::helper('adyen')->__('Failed to create billing agreement for this order (listRecurringCall did not contain contract)');
                     }
+                } else {
+                    $this->_debugData[$this->_count]['_processNotification error'] = 'merchantReference is empty, probably checked out as quest we can\'t save billing agreemnents for quest checkout';
                 }
 
                 if ($message) {
@@ -659,8 +696,30 @@ class Adyen_Payment_Model_ProcessNotification extends Mage_Core_Model_Abstract
                 }
                 break;
             default:
-                $this->_debugData[$this->_count]['_processNotification info'] = sprintf('This notification event: %s is not supported so will be ignored', $this->_eventCode);
+                $this->_debugData[$this->_count]['_processNotification info'] = sprintf(
+                    'This notification event: %s is not supported so will be ignored',
+                    $this->_eventCode
+                );
                 break;
+        }
+    }
+
+    /**
+     * Update status of the agreements in Magento
+     */
+    protected function _updateExistingBillingAgreementsStatus($customerReference, $recurringReferencesList)
+    {
+        $billingAgreements = Mage::getResourceModel('adyen/billing_agreement_collection')
+            ->addFieldToFilter('customer_id', $customerReference);
+
+        foreach ($billingAgreements as $billingAgreement) {
+            if (!in_array($billingAgreement->getReferenceId(), $recurringReferencesList)) {
+                $billingAgreement->setStatus(Adyen_Payment_Model_Billing_Agreement::STATUS_CANCELED);
+            } else {
+                $billingAgreement->setStatus(Adyen_Payment_Model_Billing_Agreement::STATUS_ACTIVE);
+            }
+
+            $billingAgreement->save();
         }
     }
 
@@ -672,7 +731,6 @@ class Adyen_Payment_Model_ProcessNotification extends Mage_Core_Model_Abstract
     {
 
         if ($order->isCanceled() && $this->_getConfigData('uncancelorder', 'adyen_abstract')) {
-
             $this->_debugData[$this->_count]['_uncancelOrder'] = 'Uncancel the order because could be that it is cancelled in a previous notification';
 
             $orderStatus = $this->_getConfigData('order_status', 'adyen_abstract', $order->getStoreId());
@@ -700,7 +758,6 @@ class Adyen_Payment_Model_ProcessNotification extends Mage_Core_Model_Abstract
                 }
             } catch (Exception $e) {
                 $this->_debugData[$this->_count]['_uncancelOrder'] = 'Failed to cancel orderlines exception: ' . $e->getMessage();
-
             }
         }
     }
@@ -765,11 +822,13 @@ class Adyen_Payment_Model_ProcessNotification extends Mage_Core_Model_Abstract
                 if ($creditmemo->getInvoice()) {
                     $transactionSave->addObject($creditmemo->getInvoice());
                 }
+
                 $transactionSave->save();
                 if ($_mail) {
                     $creditmemo->getOrder()->setCustomerNoteNotify(true);
                     $creditmemo->sendEmail();
                 }
+
                 $this->_debugData[$this->_count]['_refundOrder done'] = 'Credit memo is created';
             } catch (Exception $e) {
                 $this->_debugData[$this->_count]['_refundOrder error'] = 'Error creating credit memo error message is: ' . $e->getMessage();
@@ -809,7 +868,12 @@ class Adyen_Payment_Model_ProcessNotification extends Mage_Core_Model_Abstract
         // if no status is selected don't change the status and use current status
         $status = (!empty($status)) ? $status : $order->getStatus();
         $order->addStatusHistoryComment(Mage::helper('adyen')->__('Adyen Refund Successfully completed'), $status);
-        $order->sendOrderUpdateEmail((bool)$this->_getConfigData('send_update_mail', 'adyen_abstract', $order->getStoreId()));
+        $order->sendOrderUpdateEmail(
+            (bool)$this->_getConfigData(
+                'send_update_mail', 'adyen_abstract',
+                $order->getStoreId()
+            )
+        );
         /**
          * save the order this is needed for older magento version so that status is not reverted to state NEW
          */
@@ -845,7 +909,14 @@ class Adyen_Payment_Model_ProcessNotification extends Mage_Core_Model_Abstract
             $order->sendNewOrderEmail(); // send order email
         }
 
-        if (($payment_method == "c_cash" && $this->_getConfigData('create_shipment', 'adyen_cash', $order->getStoreId())) || ($this->_getConfigData('create_shipment', 'adyen_pos', $order->getStoreId()) && $_paymentCode == "adyen_pos")) {
+        if (($payment_method == "c_cash" && $this->_getConfigData(
+            'create_shipment', 'adyen_cash',
+            $order->getStoreId()
+        )) || ($this->_getConfigData(
+            'create_shipment', 'adyen_pos_cloud',
+            $order->getStoreId()
+        ) && $_paymentCode == "adyen_pos")
+        ) {
             $this->_createShipment($order);
         }
     }
@@ -859,20 +930,27 @@ class Adyen_Payment_Model_ProcessNotification extends Mage_Core_Model_Abstract
 
         // only do this if status in configuration is set
         if (!empty($status)) {
-
             $statusObject = Mage::getModel('sales/order_status')->getCollection()
                 ->addFieldToFilter('main_table.status', $status)
                 ->addFieldToFilter('state_table.is_default', true)
                 ->joinStates()
                 ->getFirstItem();
             $state = $statusObject->getState();
-            $order->setState($state, $status, Mage::helper('adyen')->__('Payment is pre authorised waiting for capture'));
+            $order->setState(
+                $state, $status,
+                Mage::helper('adyen')->__('Payment is pre authorised waiting for capture')
+            );
 
             /**
              * save the order this is needed for older magento version so that status is not reverted to state NEW
              */
             $order->save();
-            $order->sendOrderUpdateEmail((bool)$this->_getConfigData('send_update_mail', 'adyen_abstract', $order->getStoreId()));
+            $order->sendOrderUpdateEmail(
+                (bool)$this->_getConfigData(
+                    'send_update_mail', 'adyen_abstract',
+                    $order->getStoreId()
+                )
+            );
             $this->_debugData[$this->_count]['_setPrePaymentAuthorized'] = 'Order status is changed to Pre-authorised status, status is ' . $status;
         } else {
             $this->_debugData[$this->_count]['_setPrePaymentAuthorized'] = 'No pre-authorised status is used so ignore';
@@ -910,7 +988,10 @@ class Adyen_Payment_Model_ProcessNotification extends Mage_Core_Model_Abstract
                 }
             }
 
-            $createPendingInvoice = (bool)$this->_getConfigData('create_pending_invoice', 'adyen_abstract', $order->getStoreId());
+            $createPendingInvoice = (bool)$this->_getConfigData(
+                'create_pending_invoice', 'adyen_abstract',
+                $order->getStoreId()
+            );
             if (!$createPendingInvoice) {
                 $this->_debugData[$this->_count]['_prepareInvoice done'] = 'Setting pending invoice is off so don\'t create an invoice wait for the capture notification';
                 return;
@@ -1011,7 +1092,6 @@ class Adyen_Payment_Model_ProcessNotification extends Mage_Core_Model_Abstract
         }
 
         if ($order->canInvoice()) {
-
             /* We do not use this inside a transaction because order->save() is always done on the end of the notification
              * and it could result in a deadlock see https://github.com/Adyen/magento/issues/334
              */
@@ -1023,10 +1103,12 @@ class Adyen_Payment_Model_ProcessNotification extends Mage_Core_Model_Abstract
                 $invoice->setTransactionId($this->_pspReference);
 
                 $autoCapture = $this->_isAutoCapture($order);
-                $createPendingInvoice = (bool)$this->_getConfigData('create_pending_invoice', 'adyen_abstract', $order->getStoreId());
+                $createPendingInvoice = (bool)$this->_getConfigData(
+                    'create_pending_invoice', 'adyen_abstract',
+                    $order->getStoreId()
+                );
 
                 if ((!$autoCapture) && ($createPendingInvoice)) {
-
                     // if amount is zero create a offline invoice
                     $value = (int)$this->_value;
                     if ($value == 0) {
@@ -1062,7 +1144,10 @@ class Adyen_Payment_Model_ProcessNotification extends Mage_Core_Model_Abstract
 
             $this->_setPaymentAuthorized($order);
 
-            $invoiceAutoMail = (bool)$this->_getConfigData('send_invoice_update_mail', 'adyen_abstract', $order->getStoreId());
+            $invoiceAutoMail = (bool)$this->_getConfigData(
+                'send_invoice_update_mail', 'adyen_abstract',
+                $order->getStoreId()
+            );
             if ($invoiceAutoMail) {
                 $invoice->sendEmail();
             }
@@ -1084,8 +1169,16 @@ class Adyen_Payment_Model_ProcessNotification extends Mage_Core_Model_Abstract
             $captureMode = trim($this->_getConfigData('capture_mode', 'adyen_abstract', $order->getStoreId()));
             $sepaFlow = trim($this->_getConfigData('flow', 'adyen_sepa', $order->getStoreId()));
             $_paymentCode = $this->_paymentMethodCode($order);
-            $captureModeOpenInvoice = $this->_getConfigData('auto_capture_openinvoice', 'adyen_abstract', $order->getStoreId());
-            $captureModePayPal = trim($this->_getConfigData('paypal_capture_mode', 'adyen_abstract', $order->getStoreId()));
+            $captureModeOpenInvoice = $this->_getConfigData(
+                'auto_capture_openinvoice', 'adyen_abstract',
+                $order->getStoreId()
+            );
+            $captureModePayPal = trim(
+                $this->_getConfigData(
+                    'paypal_capture_mode', 'adyen_abstract',
+                    $order->getStoreId()
+                )
+            );
 
             //check if it is a banktransfer. Banktransfer only a Authorize notification is send.
             $isBankTransfer = $this->_isBankTransfer($this->_paymentMethod);
@@ -1096,14 +1189,17 @@ class Adyen_Payment_Model_ProcessNotification extends Mage_Core_Model_Abstract
              */
             if (strcmp($this->_paymentMethod, 'ideal') === 0 ||
                 strcmp($this->_paymentMethod, 'c_cash') === 0 ||
-                $_paymentCode == "adyen_pos" ||
                 $isBankTransfer == true ||
-                (($_paymentCode == "adyen_sepa" || ($_paymentCode == "adyen_oneclick" && strcmp($this->_paymentMethod, 'sepadirectdebit') === 0)) && $sepaFlow != "authcap") ||
+                (($_paymentCode == "adyen_sepa" || ($_paymentCode == "adyen_oneclick" && strcmp(
+                    $this->_paymentMethod,
+                    'sepadirectdebit'
+                ) === 0)) && $sepaFlow != "authcap") ||
                 $_paymentCode == "adyen_boleto" || $_paymentCode == "adyen_multibanco"
             ) {
                 $this->_debugData[$this->_count]['_isAutoCapture result'] = 'openinvoice capture mode is set to auto capture because payment method does not allow manual capture';
                 return true;
             }
+
             // if auto capture mode for openinvoice is turned on then use auto capture
             if ($captureModeOpenInvoice == true && Mage::helper('adyen')->isOpenInvoice($this->_paymentMethod)) {
                 $this->_debugData[$this->_count]['_isAutoCapture result'] = 'openinvoice capture mode is set to auto capture';
@@ -1125,6 +1221,7 @@ class Adyen_Payment_Model_ProcessNotification extends Mage_Core_Model_Abstract
                     return false;
                 }
             }
+
             if (strcmp($captureMode, 'manual') === 0) {
                 $this->_debugData[$this->_count]['_isAutoCapture result'] = 'Fall back on default capture delay that is manual capture';
                 return false;
@@ -1170,6 +1267,9 @@ class Adyen_Payment_Model_ProcessNotification extends Mage_Core_Model_Abstract
             case 'laser':
             case 'paypal':
             case 'sepadirectdebit':
+            case 'dankort':
+            case 'elo':
+            case 'hipercard':
                 $manualCaptureAllowed = true;
                 break;
             default:
@@ -1204,14 +1304,19 @@ class Adyen_Payment_Model_ProcessNotification extends Mage_Core_Model_Abstract
         } else {
             $isBankTransfer = false;
         }
+
         return $isBankTransfer;
     }
 
     /**
      * @param $order
      */
-    protected function _setPaymentAuthorized($order, $manualReviewComment = true, $createInvoice = false, $captureNotification = false)
-    {
+    protected function _setPaymentAuthorized(
+        $order,
+        $manualReviewComment = true,
+        $createInvoice = false,
+        $captureNotification = false
+    ) {
         $this->_debugData[$this->_count]['_setPaymentAuthorized start'] = 'Set order to authorised';
 
         // if full amount is captured create invoice
@@ -1227,7 +1332,10 @@ class Adyen_Payment_Model_ProcessNotification extends Mage_Core_Model_Abstract
         }
 
         $autoCapture = $this->_isAutoCapture($order);
-        $createPendingInvoice = (bool)$this->_getConfigData('create_pending_invoice', 'adyen_abstract', $order->getStoreId());
+        $createPendingInvoice = (bool)$this->_getConfigData(
+            'create_pending_invoice', 'adyen_abstract',
+            $order->getStoreId()
+        );
         $captureOnShipment = $this->_getConfigData('capture_on_shipment', 'adyen_abstract', $order->getStoreId());
 
         /**
@@ -1235,9 +1343,10 @@ class Adyen_Payment_Model_ProcessNotification extends Mage_Core_Model_Abstract
          * - if create pending invoice is set and the payment method is auto capture update the order
          * - if create pending invoice is set and payment method is manual capture but the notificaiton is a capture notification update the order
          */
+        // @codingStandardsIgnoreStart
         if ($captureOnShipment && !$autoCapture) {
             // if capture on shipment is enabled and it is a manual capture payment method do not update the order
-        } else if (!$createPendingInvoice ||
+        } elseif (!$createPendingInvoice ||
             ($createPendingInvoice && $autoCapture) ||
             ($createPendingInvoice && !$autoCapture && $captureNotification)
         ) {
@@ -1246,8 +1355,12 @@ class Adyen_Payment_Model_ProcessNotification extends Mage_Core_Model_Abstract
             $this->_debugData[$this->_count]['_setPaymentAuthorized selected status'] = 'The status that is selected is:' . $status;
 
             // set the state to processing
-            $order->setState(Mage_Sales_Model_Order::STATE_PROCESSING);
+            // if state is pending - do not change holded orders
+            if($order->getState() == Mage_Sales_Model_Order::STATE_PENDING_PAYMENT) {
+              $order->setState(Mage_Sales_Model_Order::STATE_PROCESSING);
+            }
         }
+        // @codingStandardsIgnoreEnd
 
         // virtual order can have different status
         if ($order->getIsVirtual()) {
@@ -1263,13 +1376,11 @@ class Adyen_Payment_Model_ProcessNotification extends Mage_Core_Model_Abstract
 
         // check for boleto if payment is totally paid
         if ($this->_paymentMethodCode($order) == "adyen_boleto") {
-
             // check if paid amount is the same as orginal amount
             $orginalAmount = $this->_boletoOriginalAmount;
             $paidAmount = $this->_boletoPaidAmount;
 
             if ($orginalAmount != $paidAmount) {
-
                 // not the full amount is paid. Check if it is underpaid or overpaid
                 // strip the  BRL of the string
                 $orginalAmount = str_replace("BRL", "", $orginalAmount);
@@ -1304,7 +1415,12 @@ class Adyen_Payment_Model_ProcessNotification extends Mage_Core_Model_Abstract
 
         $status = (!empty($status)) ? $status : $order->getStatus();
         $order->addStatusHistoryComment(Mage::helper('adyen')->__($comment), $status);
-        $order->sendOrderUpdateEmail((bool)$this->_getConfigData('send_update_mail', 'adyen_abstract', $order->getStoreId()));
+        $order->sendOrderUpdateEmail(
+            (bool)$this->_getConfigData(
+                'send_update_mail', 'adyen_abstract',
+                $order->getStoreId()
+            )
+        );
         /**
          * save the order this is needed for older magento version so that status is not reverted to state NEW
          */
@@ -1345,11 +1461,13 @@ class Adyen_Payment_Model_ProcessNotification extends Mage_Core_Model_Abstract
      */
     protected function _addStatusHistoryComment($order)
     {
-        $success_result = (strcmp($this->_success, 'true') == 0 || strcmp($this->_success, '1') == 0) ? 'true' : 'false';
+        $success_result = (strcmp($this->_success, 'true') == 0 || strcmp(
+            $this->_success,
+            '1'
+        ) == 0) ? 'true' : 'false';
         $success = (!empty($this->_reason)) ? "$success_result <br />reason:$this->_reason" : $success_result;
 
         if ($this->_eventCode == Adyen_Payment_Model_Event::ADYEN_EVENT_REFUND || $this->_eventCode == Adyen_Payment_Model_Event::ADYEN_EVENT_CAPTURE) {
-
             $currency = $order->getOrderCurrencyCode();
 
             // check if it is a full or partial refund
@@ -1389,7 +1507,11 @@ class Adyen_Payment_Model_ProcessNotification extends Mage_Core_Model_Abstract
 
         $type = 'Adyen HTTP Notification(s):';
         $comment = Mage::helper('adyen')
-            ->__('%s <br /> eventCode: %s <br /> pspReference: %s <br /> paymentMethod: %s <br /> success: %s %s %s %s', $type, $this->_eventCode, $this->_pspReference, $this->_paymentMethod, $success, $valueText, $klarnaReservationNumberText, $boletoPaidAmountText);
+            ->__(
+                '%s <br /> eventCode: %s <br /> pspReference: %s <br /> paymentMethod: %s <br /> success: %s %s %s %s',
+                $type, $this->_eventCode, $this->_pspReference, $this->_paymentMethod, $success, $valueText,
+                $klarnaReservationNumberText, $boletoPaidAmountText
+            );
 
         // If notification is pending status and pending status is set add the status change to the comment history
         if ($this->_eventCode == Adyen_Payment_Model_Event::ADYEN_EVENT_PENDING) {
@@ -1443,9 +1565,7 @@ class Adyen_Payment_Model_ProcessNotification extends Mage_Core_Model_Abstract
 
         // check if order has in invoice only cancel/hold if this is not the case
         if ($ignoreHasInvoice || !$order->hasInvoices()) {
-
             if ($orderStatus == Mage_Sales_Model_Order::STATE_HOLDED) {
-
                 // Allow magento to hold order
                 $order->setActionFlag(Mage_Sales_Model_Order::ACTION_FLAG_HOLD, true);
 
@@ -1456,7 +1576,6 @@ class Adyen_Payment_Model_ProcessNotification extends Mage_Core_Model_Abstract
                     return;
                 }
             } else {
-
                 // Allow magento to cancel order
                 $order->setActionFlag(Mage_Sales_Model_Order::ACTION_FLAG_CANCEL, true);
 
@@ -1467,6 +1586,7 @@ class Adyen_Payment_Model_ProcessNotification extends Mage_Core_Model_Abstract
                     return;
                 }
             }
+
             $order->sendOrderUpdateEmail($_mail);
         } else {
             $this->_debugData[$this->_count]['warning'] = 'Order has already an invoice so cannot be canceled';
@@ -1482,7 +1602,7 @@ class Adyen_Payment_Model_ProcessNotification extends Mage_Core_Model_Abstract
     protected function _addNotificationToQueue($params)
     {
         $pspReference = $params->getData('pspReference');
-        if (is_numeric($pspReference)) {
+        if (!$this->isTestNotification($pspReference)) {
             $this->_debugData['AddNotificationToQueue Step1'] = 'Going to add notification to queue';
 
             $incrementId = $params->getData('merchantReference');
@@ -1499,7 +1619,6 @@ class Adyen_Payment_Model_ProcessNotification extends Mage_Core_Model_Abstract
             $eventQueue->setCreatedAt(now());
             $eventQueue->save();
             $this->_debugData['AddNotificationToQueue Step2'] = 'Notification is added to the queue';
-
         } else {
             $this->_debugData['AddNotificationToQueue'] = 'Notification is a TEST Notification so do not add to queue';
         }
@@ -1534,9 +1653,12 @@ class Adyen_Payment_Model_ProcessNotification extends Mage_Core_Model_Abstract
         // try to update old notifications that did not processed yet
         $collection = Mage::getModel('adyen/event_queue')->getCollection()
             ->addFieldToFilter('attempt', array('lteq' => '4'))
-            ->addFieldToFilter('created_at', array(
-                'to' => strtotime('-1 minutes', time()),
-                'datetime' => true))
+            ->addFieldToFilter(
+                'created_at', array(
+                    'to' => strtotime('-1 minutes', time()),
+                    'datetime' => true
+                )
+            )
             ->addOrder('created_at', 'asc');
 
 
@@ -1548,7 +1670,6 @@ class Adyen_Payment_Model_ProcessNotification extends Mage_Core_Model_Abstract
         if ($collection->getSize() > 0) {
             $this->_count = 0;
             foreach ($collection as $event) {
-
                 $incrementId = $event->getIncrementId();
                 $params = unserialize($event->getResponse());
 
@@ -1565,7 +1686,6 @@ class Adyen_Payment_Model_ProcessNotification extends Mage_Core_Model_Abstract
 
                 $order = Mage::getModel('sales/order')->loadByIncrementId($incrementId);
                 if ($order->getId()) {
-
                     $this->_debugData[$this->_count]['UpdateNotProcessedEvents Step3'] = 'Order exists going to update it';
                     // try to process it now
                     $this->_debugData[$this->_count]['UpdateNotProcessedEvents params'] = $params->debug();
@@ -1624,7 +1744,7 @@ class Adyen_Payment_Model_ProcessNotification extends Mage_Core_Model_Abstract
     /**
      * @param $code
      * @param null $paymentMethodCode
-     * @param null $storeId
+     * @param int|null $storeId
      * @return mixed
      */
     protected function _getConfigData($code, $paymentMethodCode = null, $storeId = null)
@@ -1638,5 +1758,22 @@ class Adyen_Payment_Model_ProcessNotification extends Mage_Core_Model_Abstract
     protected function _getRequest()
     {
         return Mage::app()->getRequest();
+    }
+
+    /**
+     * If notification is a test notification from Adyen Customer Area
+     *
+     * @param $pspReference
+     * @return bool
+     */
+    protected function isTestNotification($pspReference)
+    {
+        if (strpos(strtolower($pspReference), "test_") !== false
+            || strpos(strtolower($pspReference), "testnotification_") !== false
+        ) {
+            return true;
+        } else {
+            return false;
+        }
     }
 }

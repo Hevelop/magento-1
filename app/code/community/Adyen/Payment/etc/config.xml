@@ -1,22 +1,26 @@
 <?xml version="1.0"?>
 <!--
 /**
+ *                       ######
+ *                       ######
+ * ############    ####( ######  #####. ######  ############   ############
+ * #############  #####( ######  #####. ######  #############  #############
+ *        ######  #####( ######  #####. ######  #####  ######  #####  ######
+ * ###### ######  #####( ######  #####. ######  #####  #####   #####  ######
+ * ###### ######  #####( ######  #####. ######  #####          #####  ######
+ * #############  #############  #############  #############  #####  ######
+ *  ############   ############  #############   ############  #####  ######
+ *                                      ######
+ *                               #############
+ *                               ############
+ *
  * Adyen Payment Module
  *
- * NOTICE OF LICENSE
+ * Copyright (c) 2019 Adyen B.V.
+ * This file is open source and available under the MIT license.
+ * See the LICENSE file for more info.
  *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * @category	Adyen
- * @package	Adyen_Payment
- * @copyright	Copyright (c) 2011 Adyen (http://www.adyen.com)
- * @license	http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Author: Adyen <magento@adyen.com>
  */
 /**
  * @category   Payment Gateway
@@ -29,7 +33,7 @@
 <config>
     <modules>
         <Adyen_Payment>
-            <version>2.10.0</version>
+            <version>2.16.0</version>
         </Adyen_Payment>
     </modules>
     <global>
@@ -81,7 +85,7 @@
             <adyen_setup>
                 <setup>
                     <module>Adyen_Payment</module>
-                    <class>Adyen_Payment_Model_Resource_Setup</class>
+                    <class>Mage_Sales_Model_Resource_Setup</class>
                 </setup>
                 <connection>
                     <use>core_setup</use>
@@ -129,7 +133,7 @@
             <quote>
                 <item>
                     <product_attributes>
-                        <adyen_pre_order />
+                        <adyen_pre_order/>
                     </product_attributes>
                 </item>
             </quote>
@@ -223,6 +227,18 @@
                     </adyen_payment_billing_agreement>
                 </observers>
             </controller_action_predispatch_gomage_checkout>
+            <controller_action_predispatch_amscheckoutfront>
+                <observers>
+                    <adyen_payment_hpp>
+                        <class>adyen/observer</class>
+                        <method>addMethodsToConfig</method>
+                    </adyen_payment_hpp>
+                    <adyen_payment_billing_agreement>
+                        <class>adyen/billing_agreement_observer</class>
+                        <method>addMethodsToConfig</method>
+                    </adyen_payment_billing_agreement>
+                </observers>
+            </controller_action_predispatch_amscheckoutfront>
             <sales_order_shipment_save_before>
                 <observers>
                     <adyen_payment_capture_invoice_on_shipment>
@@ -346,6 +362,7 @@
                 <send_email_bank_sepa_on_pending>0</send_email_bank_sepa_on_pending>
                 <title_renderer>title_image</title_renderer>
                 <ignore_refund_notification>0</ignore_refund_notification>
+                <multiple_merchants>1</multiple_merchants>
                 <split_payments_refund_strategy>1</split_payments_refund_strategy>
             </adyen_abstract>
             <adyen_hpp translate="title" module="adyen">
@@ -375,22 +392,21 @@
                 <sort_order>35</sort_order>
                 <allowspecific>0</allowspecific>
             </adyen_ideal>
-            <adyen_pos translate="title" module="adyen">
+            <adyen_pos_cloud translate="title" module="adyen">
                 <active>0</active>
-                <model>adyen/adyen_pos</model>
+                <model>adyen/adyen_posCloud</model>
                 <group>adyen</group>
-                <title>PIN</title>
-                <recurringtypes>ONECLICK</recurringtypes>
-                <add_receipt_order_lines>1</add_receipt_order_lines>
-                <enable_scanner>0</enable_scanner>
-                <submit_scanner>0</submit_scanner>
-                <express_checkout>0</express_checkout>
-                <express_checkout_kiosk_mode>0</express_checkout_kiosk_mode>
-                <express_checkout_recurring>1</express_checkout_recurring>
+                <title>Adyen POS Terminal API</title>
+                <recurring_type>NONE</recurring_type>
+                <sort_order>100</sort_order>
+                <visible_type>frontend</visible_type>
+                <timeout>25</timeout>
+                <total_timeout>120</total_timeout>
+                <sort_order>80</sort_order>
                 <create_shipment>0</create_shipment>
                 <allowspecific>0</allowspecific>
-                <sort_order>80</sort_order>
-            </adyen_pos>
+                <ip_filter>0</ip_filter>
+            </adyen_pos_cloud>
             <adyen_cash>
                 <active>0</active>
                 <model>adyen/adyen_cash</model>
@@ -399,11 +415,6 @@
                 <sort_order>90</sort_order>
                 <create_shipment>1</create_shipment>
                 <visible_type>both</visible_type>
-                <cash_express_checkout>0</cash_express_checkout>
-                <cash_drawer>0</cash_drawer>
-                <cash_drawer_printer_ip></cash_drawer_printer_ip>
-                <cash_drawer_printer_port>8008</cash_drawer_printer_port>
-                <cash_drawer_printer_device_id>local_printer</cash_drawer_printer_device_id>
                 <ip_filter>0</ip_filter>
             </adyen_cash>
             <adyen_openinvoice translate="title" module="adyen">
@@ -427,8 +438,6 @@
                 <title>Adyen Credit Card</title>
                 <debug>0</debug>
                 <enable_installments>0</enable_installments>
-                <cse_enabled>1</cse_enabled>
-                <cse_public_key></cse_public_key>
                 <visible_type>both</visible_type>
                 <enable_moto>0</enable_moto>
                 <trxuser_password>0</trxuser_password>
@@ -436,6 +445,7 @@
                 <wsdl>https://pal-test.adyen.com/pal/Payment.wsdl</wsdl>
                 <allow_billing_agreement_wizard>0</allow_billing_agreement_wizard>
                 <sort_order>20</sort_order>
+                <enable_threeds2>1</enable_threeds2>
             </adyen_cc>
             <adyen_oneclick translate="title" module="adyen">
                 <active>0</active>
@@ -482,6 +492,7 @@
                 <title>Adyen Apple Pay</title>
                 <sort_order>80</sort_order>
                 <shipping_type>shipping</shipping_type>
+                <require_shipping>1</require_shipping>
                 <allow_quest_checkout>1</allow_quest_checkout>
                 <change_address>1</change_address>
                 <show_in_payment_step_checkout>1</show_in_payment_step_checkout>
@@ -572,6 +583,30 @@
                         <is_cvv_required>0</is_cvv_required>
                         <is_checkout>1</is_checkout>
                     </hipercard>
+                    <troy>
+                        <code>troy</code>
+                        <code_alt>troy</code_alt>
+                        <name>Troy</name>
+                        <order>100</order>
+                        <is_cvv_required>0</is_cvv_required>
+                        <is_checkout>1</is_checkout>
+                    </troy>
+                    <cup>
+                        <code>cup</code>
+                        <code_alt>cup</code_alt>
+                        <name>Cup</name>
+                        <order>110</order>
+                        <is_cvv_required>0</is_cvv_required>
+                        <is_checkout>1</is_checkout>
+                    </cup>
+                    <dankort>
+                        <code>dankort</code>
+                        <code_alt>dankort</code_alt>
+                        <name>Dankort</name>
+                        <order>120</order>
+                        <is_cvv_required>0</is_cvv_required>
+                        <is_checkout>1</is_checkout>
+                    </dankort>
                 </cctypes>
                 <boletotypes>
                     <boletobancario_hsbc>

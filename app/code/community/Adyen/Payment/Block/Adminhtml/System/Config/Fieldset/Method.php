@@ -1,22 +1,27 @@
 <?php
 /**
+ *                       ######
+ *                       ######
+ * ############    ####( ######  #####. ######  ############   ############
+ * #############  #####( ######  #####. ######  #############  #############
+ *        ######  #####( ######  #####. ######  #####  ######  #####  ######
+ * ###### ######  #####( ######  #####. ######  #####  #####   #####  ######
+ * ###### ######  #####( ######  #####. ######  #####          #####  ######
+ * #############  #############  #############  #############  #####  ######
+ *  ############   ############  #############   ############  #####  ######
+ *                                      ######
+ *                               #############
+ *                               ############
+ *
  * Adyen Payment Module
  *
- * NOTICE OF LICENSE
+ * Copyright (c) 2019 Adyen B.V.
+ * This file is open source and available under the MIT license.
+ * See the LICENSE file for more info.
  *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * @category	Adyen
- * @package	Adyen_Payment
- * @copyright	Copyright (c) 2011 Adyen (http://www.adyen.com)
- * @license	http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Author: Adyen <magento@adyen.com>
  */
+
 /**
  * @category   Payment Gateway
  * @package    Adyen_Payment
@@ -24,7 +29,6 @@
  * @property   Adyen B.V
  * @copyright  Copyright (c) 2014 Adyen BV (http://www.adyen.com)
  */
-
 class Adyen_Payment_Block_Adminhtml_System_Config_Fieldset_Method
     extends Adyen_Payment_Block_Adminhtml_System_Config_Fieldset_Fieldset
 {
@@ -45,7 +49,7 @@ class Adyen_Payment_Block_Adminhtml_System_Config_Fieldset_Method
         }
 
         // for ideal look at adyen HPP configuration
-        if($activityPath == "payment/adyen_ideal/active") {
+        if ($activityPath == "payment/adyen_ideal/active") {
             $activityPath = "payment/adyen_hpp/active";
         }
 
@@ -63,13 +67,13 @@ class Adyen_Payment_Block_Adminhtml_System_Config_Fieldset_Method
     protected function _getHeaderTitleHtml($element)
     {
         $html = '<div class="entry-edit-head collapseable" ><a id="' . $element->getHtmlId()
-                    . '-head" href="#" onclick="Fieldset.toggleCollapse(\'' . $element->getHtmlId() . '\', \''
-                    . $this->getUrl('*/*/state') . '\'); return false;">';
+            . '-head" href="#" onclick="Fieldset.toggleCollapse(\'' . $element->getHtmlId() . '\', \''
+            . $this->getUrl('*/*/state') . '\'); return false;">';
 
-        $html .= ' <img src="'.$this->getSkinUrl('images/adyen/logo.png').'" height="20" style="vertical-align: text-bottom; margin-right: 5px;"/> ';
+        $html .= ' <img src="' . $this->getSkinUrl('images/adyen/logo.png') . '" height="20" style="vertical-align: text-bottom; margin-right: 5px;"/> ';
         $html .= $element->getLegend();
         if ($this->_isPaymentEnabled($element)) {
-            $html .= ' <img src="'.$this->getSkinUrl('images/icon-enabled.png').'" style="vertical-align: middle"/> ';
+            $html .= ' <img src="' . $this->getSkinUrl('images/icon-enabled.png') . '" style="vertical-align: middle"/> ';
         }
 
         $html .= '</a></div>';

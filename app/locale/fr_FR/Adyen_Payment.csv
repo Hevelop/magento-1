@@ -58,7 +58,7 @@
 "You have cancelled the order. Please try again","Vous avez annulé la commande. Veuillez réessayer."
 "Bank account holder name","Nom du titulaire du compte bancaire"
 "IBAN","IBAN"
-"I agree that the above amount will be debited from my bank account.", "Je suis d'accord que le montant ci-dessus soit débité de mon compte bancaire."
+"I agree that the above amount will be debited from my bank account.", "Je suis d'accord pour que le montant ci-dessus soit débité de mon compte bancaire."
 "Invalid Iban number.","Numéro IBAN incorrect."
 "POS Payment","POS paiement"
 "Payment","Paiement"

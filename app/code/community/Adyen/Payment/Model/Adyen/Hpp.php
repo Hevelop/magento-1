@@ -1,24 +1,27 @@
 <?php
 
 /**
+ *                       ######
+ *                       ######
+ * ############    ####( ######  #####. ######  ############   ############
+ * #############  #####( ######  #####. ######  #############  #############
+ *        ######  #####( ######  #####. ######  #####  ######  #####  ######
+ * ###### ######  #####( ######  #####. ######  #####  #####   #####  ######
+ * ###### ######  #####( ######  #####. ######  #####          #####  ######
+ * #############  #############  #############  #############  #####  ######
+ *  ############   ############  #############   ############  #####  ######
+ *                                      ######
+ *                               #############
+ *                               ############
+ *
  * Adyen Payment Module
  *
- * NOTICE OF LICENSE
+ * Copyright (c) 2019 Adyen B.V.
+ * This file is open source and available under the MIT license.
+ * See the LICENSE file for more info.
  *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * @category     Adyen
- * @package      Adyen_Payment
- * @copyright    Copyright (c) 2011 Adyen (http://www.adyen.com)
- * @license      http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Author: Adyen <magento@adyen.com>
  */
-
 
 /**
  * @category   Payment Gateway
@@ -78,6 +81,7 @@ class Adyen_Payment_Model_Adyen_Hpp extends Adyen_Payment_Model_Adyen_Abstract
         if (!($data instanceof Varien_Object)) {
             $data = new Varien_Object($data);
         }
+
         $info = $this->getInfoInstance();
 
         if (!$this->getHppOptionsDisabled()) {
@@ -101,6 +105,7 @@ class Adyen_Payment_Model_Adyen_Hpp extends Adyen_Payment_Model_Adyen_Abstract
                 $info->setAdditionalInformation('hpp_type_bank_label', $issuers[$selectedBankId]['label']);
                 $info->setAdditionalInformation('hpp_issuer_id', $selectedBankId);
             }
+
             $info->setPoNumber($selectedBankId);
         }
 
@@ -111,6 +116,7 @@ class Adyen_Payment_Model_Adyen_Hpp extends Adyen_Payment_Model_Adyen_Abstract
                 Mage::helper('adyen')->__('Payment Method is compulsory in order to process your payment')
             );
         }
+
         return $this;
     }
 
@@ -194,7 +200,11 @@ class Adyen_Payment_Model_Adyen_Hpp extends Adyen_Payment_Model_Adyen_Abstract
         if (!empty($this->getFormFields()['brandCode'])) {
             $brandCode = $this->getFormFields()['brandCode'];
         }
-        return Mage::helper('adyen/payment')->getFormUrl($brandCode, $isConfigDemoMode, $paymentRoutine, $hppOptionsDisabled);
+
+        return Mage::helper('adyen/payment')->getFormUrl(
+            $brandCode, $isConfigDemoMode, $paymentRoutine,
+            $hppOptionsDisabled
+        );
     }
 
 
@@ -240,6 +250,7 @@ class Adyen_Payment_Model_Adyen_Hpp extends Adyen_Payment_Model_Adyen_Abstract
         if ($recurringType == "RECURRING" || $recurringType == "ONECLICK,RECURRING") {
             return true;
         }
+
         return false;
     }
 
@@ -271,6 +282,7 @@ class Adyen_Payment_Model_Adyen_Hpp extends Adyen_Payment_Model_Adyen_Abstract
         if (!$issuerData) {
             return $issuers;
         }
+
         foreach ($issuerData as $issuer) {
             $issuers[$issuer['issuerId']] = array(
                 'label' => $issuer['name']
