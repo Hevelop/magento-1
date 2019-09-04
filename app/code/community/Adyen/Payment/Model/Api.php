@@ -43,6 +43,7 @@ class Adyen_Payment_Model_Api extends Mage_Core_Model_Abstract
     const ENDPOINT_CONNECTED_TERMINALS_TEST = "https://terminal-api-test.adyen.com/connectedTerminals";
     const ENDPOINT_CONNECTED_TERMINALS_LIVE = "https://terminal-api-live.adyen.com/connectedTerminals";
     const ENDPOINT_CHECKOUT_TEST = "https://checkout-test.adyen.com/checkout";
+    const GUEST_ID = "customer_";
 
     protected $_recurringTypes = array(
         self::RECURRING_TYPE_ONECLICK,
